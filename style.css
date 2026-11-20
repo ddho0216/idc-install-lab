@@ -87,3 +87,11 @@ summary{cursor:pointer;color:var(--info)}
 input.bad{border-color:var(--bad)}
 .gauge{height:10px;border-radius:6px;background:var(--surface2);overflow:hidden;margin:4px 0 10px}
 .gauge i{display:block;height:100%;background:var(--ok)}
+
+.tip{position:absolute;max-width:240px;background:#1b2127;color:#fff;border-radius:8px;padding:6px 10px;font-size:12.5px;pointer-events:none;z-index:3;line-height:1.4}
+.hand{position:absolute;left:50%;transform:translateX(-50%);bottom:30px;max-width:92%;background:#17935a;color:#fff;border-radius:999px;padding:8px 18px;font-size:13.5px;z-index:3;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.hand .mini{color:rgba(255,255,255,.85)}
+.fb.info{border-left-color:var(--info)}
+ol.how{margin:6px 0 10px;padding-left:20px}
+ol.how li{padding:2px 0}
+.views{flex-wrap:wrap;max-width:80%}

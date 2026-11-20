@@ -18,11 +18,14 @@
   <section class="stage">
     <canvas id="cv" aria-label="3D 랙 화면"></canvas>
     <div class="views" role="group" aria-label="보기 전환">
-      <button data-view="front" type="button">전면</button>
-      <button data-view="rear" type="button">후면</button>
-      <button data-view="top" type="button">위쪽 확대</button>
+      <button data-view="table" type="button">작업대</button>
+      <button data-view="wide" type="button">전체(전면)</button>
+      <button data-view="pdu" type="button">후면·PDU</button>
+      <button data-view="rails" type="button">랙 확대</button>
     </div>
-    <p class="hint3d">드래그 = 회전 · 휠 = 확대 · 우클릭 드래그 = 이동</p>
+    <div class="tip" id="tip" hidden></div>
+    <div class="hand" id="hand" hidden></div>
+    <p class="hint3d">드래그 = 회전 · 휠 = 확대 · 우클릭 드래그 = 이동 · 물건은 클릭해서 집습니다</p>
   </section>
   <aside class="panel" id="panel" aria-live="polite"></aside>
 </main>
