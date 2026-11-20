@@ -33,7 +33,7 @@
         { id: 'sfp', name: 'SFP+ 광 모듈', note: '2개', box: scen === 'missing' ? '1개' : '2개' },
         { id: 'look', name: '외관', note: '이상 없음', box: scen === 'damaged' ? '랙 귀(브래킷) 휘어짐' : '이상 없음' },
       ],
-      flags: {}, recvOk: false,
+      flags: {}, recvOk: false, boxOpen: false, unpacked: false,
       pdu: { ok: false, slot: {}, rate: 0 }, pduIn: {},
       mount: { railsU: null, face: 'rear', placed: false, ok: false, u: null },
       power: { conn: {}, ok: false }, console: false,
@@ -102,8 +102,24 @@
     if (st === 'cli') return id === 'console' && !S.console;
     return false;
   }
-  const GOAL = { recv: '지금은 오른쪽에서 입고서와 현물을 먼저 대조하세요.', pdu: '지금은 PDU(보관대의 긴 막대)만 필요합니다.', mount: S => S.mount.railsU ? '지금은 스위치를 집을 차례입니다.' : '지금은 레일 킷부터 집으세요.', power: '지금은 전원 코드(검은 코일)가 필요합니다.', fiber: '지금은 광 케이블(노란 코일)이 필요합니다.', cli: '지금은 콘솔 케이블(파란 코일)이 필요합니다.', mon: '이 단계는 3D 조작이 필요 없습니다.', done: '작업이 끝났습니다.' };
+  const GOAL = { recv: '지금은 박스를 열고 검수하는 단계입니다.', pdu: '지금은 PDU(보관대의 긴 막대)만 필요합니다.', mount: S => S.mount.railsU ? '지금은 스위치를 집을 차례입니다.' : '지금은 레일 킷부터 집으세요.', power: '지금은 전원 코드(검은 코일)가 필요합니다.', fiber: '지금은 광 케이블(노란 코일)이 필요합니다.', cli: '지금은 콘솔 케이블(파란 코일)이 필요합니다.', mon: '이 단계는 3D 조작이 필요 없습니다.', done: '작업이 끝났습니다.' };
+  function recvClick(id) {
+    if (id === 'box') {
+      if (S.boxOpen) { note('이미 열었습니다', '안의 장비는 검수가 끝난 뒤에 꺼냅니다.'); render(); return; }
+      S.boxOpen = true; S.fb = null; Scene3D.setView('unbox'); render();
+      Scene3D.openBox(() => { Scene3D.setView('table'); good('박스를 열었습니다', '테이프를 뜯고 뚜껑을 열었습니다. 완충재 위에 장비가 비닐에 싸여 있습니다. 이제 입고서와 대조하세요.'); render(); });
+      return;
+    }
+    if (id === 'switch') {
+      if (!S.boxOpen) return;
+      if (!S.recvOk) { note('먼저 검수하세요', '입고서와 현물 대조를 마치고 제출한 뒤에 장비를 꺼냅니다.'); render(); return; }
+      if (S.unpacked) { note('이미 꺼냈습니다', '다음 단계로 넘어가세요.'); render(); return; }
+      S.unpacked = true; S.fb = null; Scene3D.setView('unbox'); render();
+      Scene3D.unpack(() => { Scene3D.setView('table'); good('장비를 꺼냈습니다', '비닐을 벗기고 작업대 위에 올려 두었습니다.'); render(); });
+    }
+  }
   function onItem(id) {
+    if (STEPS[S.step].id === 'recv') { recvClick(id); return; }
     if (S.held === id) { release(); return; }
     if (!canHold(id)) { const g = GOAL[STEPS[S.step].id]; note('지금 쓸 물건이 아닙니다', typeof g === 'function' ? g(S) : g); render(); return; }
     release(); S.held = id; Scene3D.setHeld(id); S.fb = null; viewFor(true); setTargetsFor(id); render();
@@ -186,13 +202,15 @@
   const VIEW = {
     recv() {
       const done = S.recvOk;
-      return '<h2>1. 입고·검수</h2><p class="sub">작업대 위에 박스가 도착했습니다. 입고서와 박스 안 현물을 한 줄씩 대조하세요.</p>' +
-        '<div class="why"><b>왜 하나요</b> 설치 전에 이상을 찾아야 합니다. 설치한 뒤에 시리얼이 다르거나 부품이 빠진 걸 발견하면 반품·교체 책임이 불분명해집니다.</div>' +
+      if (!S.boxOpen) return '<h2>1. 입고·검수</h2><p class="sub">작업대 위에 박스가 도착했습니다.</p>' + how(['3D 작업대 왼쪽의 <b>갈색 박스를 클릭</b>해서 개봉합니다.', '안의 장비와 부속품을 입고서와 대조합니다.', '이상이 없으면 장비를 꺼내 작업대에 올려 둡니다.']) +
+        '<div class="why"><b>왜 먼저 열어 보나요</b> 설치 전에 입고서와 현물이 맞는지 확인해야 합니다. 설치한 뒤에 시리얼이 다르거나 부품이 빠진 걸 발견하면 반품·교체 책임이 불분명해집니다.</div>' + fbHtml();
+      return '<h2>1. 입고·검수</h2><p class="sub">박스 안 현물을 입고서와 한 줄씩 대조하세요.</p>' +
         '<table class="cmp"><tr><th>항목</th><th>입고서</th><th>박스 현물</th><th>판정</th></tr>' +
         S.rows.map(r => '<tr><td>' + r.name + '</td><td class="mono">' + esc(r.note) + '</td><td class="mono">' + esc(r.box) + '</td><td>' +
           '<button class="flag' + (S.flags[r.id] ? ' on' : '') + '" data-act="flag" data-id="' + r.id + '" type="button" aria-pressed="' + !!S.flags[r.id] + '"' + (done ? ' disabled' : '') + '>' + (S.flags[r.id] ? '이상' : '정상') + '</button></td></tr>').join('') +
         '</table><p class="mini">다른 점이 있는 줄만 "이상"으로 바꾸세요. 모두 같으면 그대로 제출합니다.</p>' +
-        '<div class="row">' + (done ? '<button class="btn" data-act="next" type="button">다음: PDU 설치</button>' : '<button class="btn" data-act="recv-submit" type="button">검수 결과 제출 (박스를 엽니다)</button>') + '</div>' +
+        (done ? how(['검수가 끝났습니다.', '3D에서 <b>비닐에 싸인 스위치를 클릭</b>해서 상자 밖으로 꺼냅니다.']) : '') +
+        '<div class="row">' + (done ? '<button class="btn" data-act="next" type="button"' + (S.unpacked ? '' : ' disabled') + '>' + (S.unpacked ? '다음: PDU 설치' : '장비를 꺼내면 열립니다') + '</button>' : '<button class="btn" data-act="recv-submit" type="button">검수 결과 제출</button>') + '</div>' +
         fbHtml() + (done ? '' : hintBtn('글자를 한 자씩 읽어 보세요. 시리얼은 한 글자만 달라도 다른 장비입니다. 개수도 입고서와 같은지 보세요.'));
     },
     pdu() {
@@ -342,8 +360,8 @@
       const got = Object.keys(S.flags).filter(k => S.flags[k]);
       const missed = exp.filter(k => !got.includes(k)), extra = got.filter(k => !exp.includes(k));
       if (!missed.length && !extra.length) {
-        S.recvOk = true; Scene3D.openBox();
-        good(exp.length ? '이상 항목을 정확히 찾았습니다' : '모두 정상입니다', exp.length ? '현장에서는 <b>사진을 찍고 입고 담당·공급사에 반품/교체(RMA)를 접수</b>합니다. 이 실습에서는 교체품이 도착했다고 보고 계속 진행합니다. 박스를 열었습니다.' : '입고서와 현물이 일치합니다. 박스를 열었습니다.');
+        S.recvOk = true;
+        good(exp.length ? '이상 항목을 정확히 찾았습니다' : '모두 정상입니다', exp.length ? '현장에서는 <b>사진을 찍고 입고 담당·공급사에 반품/교체(RMA)를 접수</b>합니다. 이 실습에서는 교체품이 도착했다고 보고 계속 진행합니다. 이제 장비를 상자에서 꺼내세요.' : '입고서와 현물이 일치합니다. 이제 장비를 상자에서 꺼내세요.');
       } else fail('검수 결과가 맞지 않습니다', (missed.length ? '놓친 항목: <b>' + missed.map(k => S.rows.find(r => r.id === k).name).join(', ') + '</b>. ' : '') + (extra.length ? '정상인데 이상으로 표시한 항목: <b>' + extra.map(k => S.rows.find(r => r.id === k).name).join(', ') + '</b>. ' : '') + '입고서와 박스 값을 다시 비교하세요.');
       render();
     },

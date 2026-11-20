@@ -7,7 +7,9 @@
   const uOf = y => Math.round((y - BASE - U / 2) / U) + 1;
   const COLORS = { A: 0xd9654a, B: 0x4a8bd9, fiber: 0xe8c547 };
   const PX = { psu1: 125, psu2: 345, up1: 1018, up2: 1054, con: 566 };
-  const TB = { x: -12, z: 1.5, top: 7.7 };
+  const TB = { x: -15, z: 1.5, top: 7.7 };
+  const SPOT = new THREE.Vector3(-12.6, TB.top + 0.25, 1.8);
+  const ease = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
   const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
   function tex(w, h, draw) {
@@ -70,7 +72,7 @@
   }
 
   const Scene3D = {
-    ready: false, items: {}, targetMeshes: [], tweens: [], cables: [], planeOn: false, heldId: null, hoverRef: null, pduAt: {},
+    ready: false, items: {}, targetMeshes: [], tweens: [], cables: [], pops: [], timers: [], draws: [], hw: [], boxOpen: false, planeOn: false, heldId: null, hoverRef: null, pduAt: {},
     init(canvas, H) {
       this.H = H || {};
       const r = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -133,16 +135,16 @@
     },
     buildTable() {
       const g = new THREE.Group(); g.position.set(TB.x, 0, TB.z);
-      const top = box(13, 0.4, 7.2, 0xcdb895, 0.8); top.position.y = TB.top - 0.2; g.add(top);
-      [[-6.2, -3.3], [6.2, -3.3], [-6.2, 3.3], [6.2, 3.3]].forEach(p => { const l = box(0.35, TB.top - 0.4, 0.35, 0x59626b, 0.5, 0.3); l.position.set(p[0], (TB.top - 0.4) / 2, p[1]); g.add(l); });
-      const lab = sprite('작업대 (입고된 장비·자재)', '#2b343c', 0.55); lab.position.set(0, TB.top + 5.6, 0); g.add(lab);
+      const top = box(18, 0.4, 8, 0xcdb895, 0.8); top.position.y = TB.top - 0.2; g.add(top);
+      [[-8.6, -3.7], [8.6, -3.7], [-8.6, 3.7], [8.6, 3.7]].forEach(p => { const l = box(0.35, TB.top - 0.4, 0.35, 0x59626b, 0.5, 0.3); l.position.set(p[0], (TB.top - 0.4) / 2, p[1]); g.add(l); });
+      const lab = sprite('작업대 (입고된 장비·자재)', '#2b343c', 0.55); lab.position.set(0, TB.top + 6.6, 0); g.add(lab);
       this.root.add(g);
     },
     buildPduStand() {
-      const st = box(9.4, 0.3, 2.4, 0x59626b, 0.5, 0.3); st.position.set(-22.2, 0.15, 1.5); this.root.add(st);
-      const lab = sprite('PDU 보관대 (정격이 다른 PDU)', '#2b343c', 0.55); lab.position.set(-22.2, 17.6, 1.5); this.root.add(lab);
+      const st = box(9.4, 0.3, 2.4, 0x59626b, 0.5, 0.3); st.position.set(-29.8, 0.15, 1.5); this.root.add(st);
+      const lab = sprite('PDU 보관대 (정격이 다른 PDU)', '#2b343c', 0.55); lab.position.set(-29.8, 17.6, 1.5); this.root.add(lab);
       [['pdu16a', 16], ['pdu16b', 16], ['pdu20a', 20], ['pdu20b', 20], ['pdu32a', 32], ['pdu32b', 32]].forEach((d, i) => {
-        const g = new THREE.Group(), x = -25.5 + i * 1.3;
+        const g = new THREE.Group(), x = -33 + i * 1.3;
         const body = box(0.42, 14.6, 0.42, 0x2a3036, 0.6); body.position.y = 8.2; g.add(body);
         const stripe = box(0.44, 14.6, 0.05, 0x8a929b); stripe.position.set(0, 8.2, -0.2); g.add(stripe);
         for (let k = 0; k < 12; k++) { const o = box(0.22, 0.5, 0.06, 0x6a737d); o.position.set(0, 14.4 - k * 1.05, -0.22); g.add(o); }
@@ -152,45 +154,53 @@
       });
     },
     buildSwitch() {
-      const g = new THREE.Group(), sm = mat(0x9aa3ab, 0.6, 0.3);
-      const body = new THREE.Mesh(new THREE.BoxGeometry(W * 0.97, U * 0.92, SWD), sm); g.add(body);
+      const g = new THREE.Group(), sm = mat(0x9aa3ab, 0.55, 0.3), EX = W * 0.97 / 2 + 0.45;
+      g.add(new THREE.Mesh(new THREE.BoxGeometry(W * 0.97, U * 0.92, SWD), sm));
       const face = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.97, U * 0.92), new THREE.MeshBasicMaterial({ map: switchFace(this.swState) })); face.position.z = SWD / 2 + 0.005; g.add(face);
       const back = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.97, U * 0.92), new THREE.MeshBasicMaterial({ map: plainTex('NX-4824T  ·  흡기 (포트 반대면)', '#bfc6cd', '#e0a030', true) }));
       back.position.z = -SWD / 2 - 0.005; back.rotation.y = Math.PI; g.add(back);
-      g.userData.face = face; g.position.set(-15, TB.top + 1.8 + 0.3, TB.z); g.visible = false;
-      const lb = sprite('스위치', '#1b2127', 0.34, 'rgba(255,255,255,.9)'); lb.position.set(0, 0.9, 0); g.add(lb);
-      this.sw = g; this.reg('switch', g, { label: '스위치 NX-4824T (가상)', hit: [W, 0.9, SWD, 0, 0, 0], enabled: false, kind: 'switch' });
+      [-1, 1].forEach(sx => {   // 랙 귀(브래킷): 포트 면 양옆
+        const ear = box(0.9, U * 0.92, 0.12, 0x6f7983, 0.4, 0.6); ear.position.set(sx * EX, 0, SWD / 2 - 0.06); g.add(ear);
+        [-0.11, 0.11].forEach(yy => { const h = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.02, 12), mat(0x20262b)); h.rotation.x = Math.PI / 2; h.position.set(sx * EX, yy, SWD / 2 + 0.005); g.add(h); });
+      });
+      const bag = new THREE.Mesh(new THREE.BoxGeometry(W * 0.97 + 2.1, U * 0.92 + 0.4, SWD + 0.4), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.3, roughness: 0.15, depthWrite: false }));
+      g.add(bag); this.bag = bag;
+      g.userData.face = face; g.position.set(-20.5, TB.top + 1.25, TB.z); g.visible = false; this.swBoxPos = g.position.clone();
+      const lb = sprite('스위치 (포장 상태)', '#1b2127', 0.34, 'rgba(255,255,255,.9)'); lb.position.set(0, 1.0, 0); g.add(lb); g.userData.lbl = lb;
+      this.sw = g; this.reg('switch', g, { label: '스위치 NX-4824T (가상)', hit: [W + 1.8, 0.9, SWD, 0, 0, 0], enabled: false, kind: 'switch' });
     },
     buildItems() {
-      // 입고 박스
-      const bx = new THREE.Group();
-      const body = box(6.2, 1.8, 5.6, 0xc59a5b, 0.9); body.position.y = 0.9; bx.add(body);
-      const tape = box(0.5, 1.82, 5.62, 0xe6d3a4, 0.9); tape.position.y = 0.9; bx.add(tape);
-      const f1 = box(6.2, 0.08, 2.8, 0xb78a4d, 0.9), f2 = box(6.2, 0.08, 2.8, 0xb78a4d, 0.9);
-      const p1 = new THREE.Group(); p1.position.set(0, 1.8, 2.8); f1.position.z = -1.4; p1.add(f1);
-      const p2 = new THREE.Group(); p2.position.set(0, 1.8, -2.8); f2.position.z = 1.4; p2.add(f2);
-      bx.add(p1); bx.add(p2); bx.userData = { p1, p2, open: 0 };
-      const lb = sprite('입고 박스', '#1b2127', 0.34, 'rgba(255,255,255,.9)'); lb.position.set(0, 3.2, 0); bx.add(lb);
-      bx.position.set(-15, TB.top, TB.z); this.reg('box', bx, { label: '입고 박스 (먼저 검수)', hit: [6.2, 1.8, 5.6, 0, 0.9, 0], pickable: false, kind: 'box' });
+      // 입고 박스: 바닥+벽 4개+완충재+뚜껑 2장
+      const BW = 6.6, BH = 2.2, BD = 5.8, bx = new THREE.Group(), cm = 0xc59a5b;
+      [[BW, 0.12, BD, 0, 0.06, 0], [BW, BH, 0.12, 0, BH / 2, BD / 2], [BW, BH, 0.12, 0, BH / 2, -BD / 2], [0.12, BH, BD, -BW / 2, BH / 2, 0], [0.12, BH, BD, BW / 2, BH / 2, 0]].forEach(q => { const m = box(q[0], q[1], q[2], cm, 0.9); m.position.set(q[3], q[4], q[5]); bx.add(m); });
+      const foam = box(BW - 0.4, 0.9, BD - 0.4, 0xf1f1ee, 1); foam.position.y = 0.57; bx.add(foam);
+      const mk = (zh, sg) => { const gr = new THREE.Group(); gr.position.set(0, BH, zh); const f = box(BW, 0.08, BD / 2, 0xb78a4d, 0.9); f.position.z = -sg * BD / 4; gr.add(f); bx.add(gr); return gr; };
+      const front = mk(BD / 2, 1), back = mk(-BD / 2, -1);
+      const tape = box(BW + 0.05, 0.03, 0.55, 0xe6d3a4, 0.5); tape.position.set(0, BH + 0.07, 0); bx.add(tape);
+      const print = new THREE.Mesh(new THREE.PlaneGeometry(BW - 0.7, 1.3), new THREE.MeshBasicMaterial({ transparent: true, map: tex(512, 100, (g, w, h) => { g.fillStyle = '#5a3d17'; g.font = '700 34px sans-serif'; g.textBaseline = 'middle'; g.fillText('NX-4824T  ·  THIS SIDE UP ↑', 14, 36); g.font = '600 26px sans-serif'; g.fillText('FRAGILE · 취급주의 (가상)', 14, 74); }) }));
+      print.position.set(0, BH / 2, BD / 2 + 0.07); bx.add(print);
+      bx.userData = { front, back, tape };
+      const lb = sprite('입고 박스 (클릭해서 개봉)', '#1b2127', 0.34, 'rgba(255,255,255,.9)'); lb.position.set(0, BH + 1.8, 0); bx.add(lb); bx.userData.lbl = lb;
+      bx.position.set(-20.5, TB.top, TB.z); this.reg('box', bx, { label: '입고 박스 (클릭해서 개봉)', hit: [BW, BH, BD, 0, BH / 2, 0], kind: 'box' });
       // 레일 킷
       const rl = new THREE.Group();
       [-0.55, 0.55].forEach(z => { const r1 = box(4.4, 0.18, 0.5, 0x8a949e, 0.4, 0.6); r1.position.z = z; rl.add(r1); const r2 = box(4.4, 0.5, 0.1, 0x8a949e, 0.4, 0.6); r2.position.set(0, 0.2, z + (z < 0 ? -0.25 : 0.25)); rl.add(r2); });
       const l2 = sprite('레일 킷', '#1b2127', 0.34, 'rgba(255,255,255,.9)'); l2.position.set(0, 1.5, 0); rl.add(l2);
-      rl.position.set(-9.8, TB.top + 0.15, 4.4); this.reg('rails', rl, { label: '레일 킷 (스위치를 받치는 레일)', hit: [4.6, 0.9, 1.8, 0, 0.3, 0], kind: 'rails' });
-      // 전원 코드·광·콘솔: 감아 둔 케이블
-      const coil = (id, x, z, color, label, tint, ring) => {
-        const g = new THREE.Group();
-        const t = new THREE.Mesh(new THREE.TorusGeometry(ring || 0.62, 0.08, 10, 28), mat(color, 0.6)); t.rotation.x = Math.PI / 2; t.position.y = 0.1; g.add(t);
-        const t2 = new THREE.Mesh(new THREE.TorusGeometry((ring || 0.62) - 0.2, 0.08, 10, 28), mat(color, 0.6)); t2.rotation.x = Math.PI / 2; t2.position.y = 0.22; g.add(t2);
-        const pl = box(0.35, 0.22, 0.5, tint, 0.5); pl.position.set(0.8, 0.12, 0); g.add(pl); const pl2 = box(0.35, 0.22, 0.5, tint, 0.5); pl2.position.set(-0.8, 0.12, 0); g.add(pl2);
-        const lb = sprite(label, '#1b2127', 0.3, 'rgba(255,255,255,.9)'); lb.position.set(0, 1.5, 0); g.add(lb);
-        g.position.set(x, TB.top + 0.05, z); this.reg(id, g, { label, hit: [2.2, 0.8, 1.6, 0, 0.3, 0], kind: id.replace(/\d/g, '') });
+      rl.position.set(-12.6, TB.top + 0.15, 4.8); this.reg('rails', rl, { label: '레일 킷 (스위치를 받치는 레일)', hit: [4.6, 0.9, 1.8, 0, 0.3, 0], kind: 'rails' });
+      // 감아 둔 케이블
+      const coil = (id, x, z, color, label, tint) => {
+        const g = new THREE.Group(), R = 0.42;
+        const t = new THREE.Mesh(new THREE.TorusGeometry(R, 0.08, 10, 28), mat(color, 0.6)); t.rotation.x = Math.PI / 2; t.position.y = 0.1; g.add(t);
+        const t2 = new THREE.Mesh(new THREE.TorusGeometry(R - 0.17, 0.08, 10, 28), mat(color, 0.6)); t2.rotation.x = Math.PI / 2; t2.position.y = 0.22; g.add(t2);
+        [-0.52, 0.52].forEach(px => { const pl = box(0.3, 0.2, 0.44, tint, 0.5); pl.position.set(px, 0.12, 0); g.add(pl); });
+        const lb = sprite(label, '#1b2127', 0.28, 'rgba(255,255,255,.9)'); lb.position.set(0, 1.3, 0); g.add(lb);
+        g.position.set(x, TB.top + 0.05, z); this.reg(id, g, { label, hit: [1.5, 0.9, 1.3, 0, 0.3, 0], kind: id.replace(/\d/g, '') });
       };
-      coil('cord1', -10.8, 0.4, 0x24292e, '전원 코드 1', 0x3a4148);
-      coil('cord2', -8.6, 0.4, 0x24292e, '전원 코드 2', 0x3a4148);
-      coil('fib1', -10.8, 2.2, COLORS.fiber, '광 케이블 1 (LC)', 0xdde6ee);
-      coil('fib2', -8.6, 2.2, COLORS.fiber, '광 케이블 2 (LC)', 0xdde6ee);
-      coil('console', -6.6, 0.4, 0x4fa3d9, '콘솔 케이블', 0x2a3036);
+      coil('console', -15.5, -1.7, 0x4fa3d9, '콘솔 케이블', 0x2a3036);
+      coil('cord1', -14.0, -1.7, 0x24292e, '전원 코드 1', 0x3a4148);
+      coil('cord2', -12.5, -1.7, 0x24292e, '전원 코드 2', 0x3a4148);
+      coil('fib1', -11.0, -1.7, COLORS.fiber, '광 케이블 1 (LC)', 0xdde6ee);
+      coil('fib2', -9.5, -1.7, COLORS.fiber, '광 케이블 2 (LC)', 0xdde6ee);
       // 노트북
       const lp = new THREE.Group();
       const lb2 = box(2.6, 0.12, 1.8, 0x7d8791, 0.5, 0.5); lb2.position.y = 0.06; lp.add(lb2);
@@ -198,7 +208,7 @@
       const scr = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.4), new THREE.MeshBasicMaterial({ map: tex(256, 140, (g, w, h) => { g.fillStyle = '#0b0e12'; g.fillRect(0, 0, w, h); g.fillStyle = '#e0a030'; g.font = '16px monospace'; g.fillText('SW> _', 10, 24); }) }));
       scr.position.set(0, 0.9, -0.85); scr.rotation.x = -0.18; lp.add(scr);
       const l3 = sprite('노트북 (콘솔 접속용)', '#1b2127', 0.34, 'rgba(255,255,255,.9)'); l3.position.set(0, 2.5, 0); lp.add(l3);
-      lp.position.set(-6.2, TB.top, 3.0); lp.rotation.y = 0.2; this.reg('laptop', lp, { label: '노트북 (콘솔 접속용)', hit: [2.8, 1.8, 2, 0, 0.8, 0], pickable: false, kind: 'laptop' });
+      lp.position.set(-8.0, TB.top, 1.9); lp.rotation.y = -0.55; this.reg('laptop', lp, { label: '노트북 (콘솔 접속용)', hit: [2.8, 1.8, 2, 0, 0.8, 0], pickable: false, kind: 'laptop' });
     },
     /* 상호작용 가능한 물건 등록 */
     reg(id, g, o) {
@@ -209,14 +219,28 @@
     },
 
     /* ---------- 장면 동작 ---------- */
-    openBox() { this.items.box.g.userData.open = 1; this.sw.visible = true; this.items.switch.enabled = true; },
+    openBox(cb) { this.items.box.pickable = false; this.boxAnim = { t: 0, cb }; this.sw.visible = true; this.items.switch.enabled = true; this.bag.visible = true; this.bag.material.opacity = 0.3; this.bag.scale.set(1, 1, 1); },
+    unpack(cb) {
+      const it = this.items.switch, p = this.sw.position.clone(); this.bagAnim = { t: 0 };
+      this.sw.userData.lbl.material.map = null; this.sw.remove(this.sw.userData.lbl);
+      this.flyPath('switch', [{ p: V3(p.x, p.y + 3.6, p.z), r: 0, dur: 0.9, arc: 0 }, { p: V3(SPOT.x, SPOT.y + 3.2, SPOT.z), r: 0, dur: 1.1, arc: 0.6 }, { p: SPOT.clone(), r: 0, dur: 0.8, arc: 0 }], () => {
+        it.home.copy(SPOT); it.homeRot = 0; it.placed = false;
+        const lb = sprite('스위치 NX-4824T', '#1b2127', 0.34, 'rgba(255,255,255,.9)'); lb.position.set(0, 1.0, 0); this.sw.add(lb); this.sw.userData.lbl = lb; cb && cb();
+      });
+    },
+    after(sec, fn) { this.timers.push({ t: sec, fn }); },
     setHeld(id) { this.heldId = id; },
-    fly(id, pos, rotY, cb, dur) {
+    fly(id, pos, rotY, cb, dur, arc) {
       const it = this.items[id]; it.placed = true;
       this.tweens = this.tweens.filter(t => t.g !== it.g);
-      this.tweens.push({ g: it.g, p0: it.g.position.clone(), p1: pos.clone(), r0: it.g.rotation.y, r1: rotY == null ? it.g.rotation.y : rotY, t: 0, dur: dur || 0.9, arc: 1.6, cb });
+      this.tweens.push({ g: it.g, p0: it.g.position.clone(), p1: pos.clone(), r0: it.g.rotation.y, r1: rotY == null ? it.g.rotation.y : rotY, t: 0, dur: dur || 0.9, arc: arc == null ? 1.6 : arc, cb });
     },
+    flyPath(id, pts, cb) { const step = i => { if (i >= pts.length) { cb && cb(); return; } const q = pts[i]; this.fly(id, q.p, q.r, () => step(i + 1), q.dur, q.arc); }; this.items[id].placed = true; step(0); },
     home(id, cb) { const it = this.items[id]; this.fly(id, it.home, it.homeRot, () => { it.placed = false; it.g.visible = true; cb && cb(); }); },
+    screw(pos, dirZ, delay) {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 12), mat(0xd9dde1, 0.3, 0.8)); m.rotation.x = Math.PI / 2; m.position.copy(pos); m.position.z += dirZ * 0.05; m.scale.setScalar(0.01);
+      this.root.add(m); this.hw.push(m); this.pops.push({ m, t: -(delay || 0), dur: 0.28 });
+    },
     pduSlot(lr) { return V3(lr === 'L' ? 2.72 : -2.72, 0, ZR + 0.95); },
     pduAssign(side, id) { this.pduAt[side] = id; },
     pduLabel(id, text, bg, fg) {
@@ -225,13 +249,18 @@
     },
     pduPos(side, k) { const g = this.items[this.pduAt[side]].g; g.updateMatrixWorld(true); return g.localToWorld(V3(0, 14.4 - k * 1.05, -0.22)); },
     installRails(u, cb) {
-      const it = this.items.rails, g = it.g;
-      this.fly('rails', V3(0, yOf(u), 0), 0, () => {
+      const g = this.items.rails.g, y = yOf(u);
+      this.flyPath('rails', [{ p: V3(0, y + 2.6, ZF + 3.5), r: 0, dur: 1.3, arc: 2 }, { p: V3(0, y, 0), r: 0, dur: 1.2, arc: 0.3 }], () => {
         g.visible = false;
         const rg = new THREE.Group();
-        [-1, 1].forEach(sx => { const r = box(0.16, 0.22, DEP - 0.9, 0x8a949e, 0.4, 0.6); r.position.set(sx * (W / 2 * 0.97 + 0.12), -U * 0.3, 0); rg.add(r); });
-        rg.position.set(0, yOf(u), 0); this.root.add(rg); this.railsMesh = rg; cb && cb();
-      }, 0.8);
+        [-1, 1].forEach(sx => {
+          const r = box(0.16, 0.22, DEP - 0.9, 0x8a949e, 0.4, 0.6); r.position.set(sx * (W / 2 * 0.97 + 0.12), -U * 0.3, 0); rg.add(r);
+          [-1, 1].forEach(sz => { const br = box(0.55, 0.5, 0.1, 0x6f7983, 0.4, 0.6); br.position.set(sx * (W / 2 * 0.97 + 0.3), -U * 0.2, sz * (DEP / 2 - 0.45)); rg.add(br); });
+        });
+        rg.position.set(0, y, 0); this.root.add(rg); this.railsMesh = rg;
+        let d = 0.1; [-1, 1].forEach(sx => [-1, 1].forEach(sz => { this.screw(V3(sx * (W / 2 * 0.97 + 0.3), y - U * 0.2, sz * (DEP / 2 - 0.45) + (sz > 0 ? 0.05 : -0.05)), sz, d); d += 0.28; }));
+        this.after(1.5, () => cb && cb());
+      });
     },
     swPort(name) {
       const px = { psu1: PX.psu1, psu2: PX.psu2, t1: PX.up1, t2: PX.up2, con: PX.con }[name], py = { psu1: 56, psu2: 56, t1: 45, t2: 45, con: 50 }[name];
@@ -239,9 +268,12 @@
       return this.sw.localToWorld(V3((px / 1086 - 0.5) * W * 0.97, (0.5 - py / 100) * U * 0.92, SWD / 2 + 0.02));
     },
     mountSwitch(u, face, cb) {
-      const z = (ZF - 0.35 - SWD / 2) * (face === 'rear' ? -1 : 1);
-      this.sw.userData.face = this.sw.userData.face;
-      this.fly('switch', V3(0, yOf(u), z), face === 'rear' ? Math.PI : 0, () => { this.mounted = { u, face }; this.refreshFace(); cb && cb(); }, 1.2);
+      const rear = face === 'rear', zF = (ZF - 0.35 - SWD / 2) * (rear ? -1 : 1), yy = yOf(u), rot = rear ? Math.PI : 0, sz = ZF + SWD / 2 + 3.2;
+      this.flyPath('switch', [{ p: V3(0, yy + 2.4, sz + 2.4), r: rot, dur: 1.4, arc: 1.6 }, { p: V3(0, yy, sz), r: rot, dur: 0.6, arc: 0 }, { p: V3(0, yy, zF), r: rot, dur: 2.0, arc: 0 }], () => {
+        this.mounted = { u, face }; this.refreshFace(); this.sw.updateMatrixWorld(true);
+        let d = 0.1; [-1, 1].forEach(sx => [-0.11, 0.11].forEach(yo => { const w = this.sw.localToWorld(V3(sx * (W * 0.97 / 2 + 0.45), yo, SWD / 2 + 0.03)); this.screw(w, rear ? -1 : 1, d); d += 0.25; }));
+        this.after(1.6, () => cb && cb());
+      });
     },
     refreshFace() { const f = this.sw.userData.face; if (f.material.map) f.material.map.dispose(); f.material.map = switchFace(this.swState); f.material.needsUpdate = true; },
     setSwState(p) { Object.assign(this.swState, p); this.refreshFace(); },
@@ -262,19 +294,21 @@
         this.tgroup.add(m); this.targetMeshes.push(m);
       });
     },
-    tube(points, color, rad, kind) {
+    tube(points, color, rad, kind, plug) {
       const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.35);
-      const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 56, rad || 0.05, 8, false), mat(color, 0.5));
-      this.root.add(m); m.userData.kind = kind; this.cables.push(m); return m;
+      const geo = new THREE.TubeGeometry(curve, 80, rad || 0.05, 8, false), m = new THREE.Mesh(geo, mat(color, 0.5)), grp = new THREE.Group();
+      grp.add(m); grp.userData.kind = kind; geo.setDrawRange(0, 0);
+      this.draws.push({ geo, total: geo.index.count, t: 0, grp, a: points[0], b: points[points.length - 1], pc: plug || 0x20262b, started: false });
+      this.root.add(grp); this.cables.push(grp); return grp;
     },
-    clearCables(kind) { this.cables = this.cables.filter(c => { if (!kind || c.userData.kind === kind) { this.root.remove(c); return false; } return true; }); },
+    clearCables(kind) { this.cables = this.cables.filter(c => { if (!kind || c.userData.kind === kind) { this.root.remove(c); this.draws = this.draws.filter(d => d.grp !== c); return false; } return true; }); },
     power(psu, side, outlet) {
       const a = this.swPort(psu === 1 ? 'psu1' : 'psu2'), end = this.pduPos(side, outlet), rear = this.mounted && this.mounted.face === 'rear', out = rear ? -1 : 1;
       const pts = [a, V3(a.x, a.y, a.z + out * 0.8)];
       if (!rear) { const sx = Math.sign(this.items[this.pduAt[side]].g.position.x) || 1; pts.push(V3(sx * (W / 2 + 1.1), a.y, ZF + 1.0), V3(sx * (W / 2 + 1.1), a.y, 0), V3(sx * (W / 2 + 0.9), end.y, ZR - 1.2)); }
       else pts.push(V3((a.x + end.x) / 2, (a.y + end.y) / 2, ZR - 1.4));
       pts.push(V3(end.x, end.y, end.z - 0.9), end);
-      return this.tube(pts, COLORS[side], 0.055, 'power');
+      return this.tube(pts, COLORS[side], 0.055, 'power', 0x20262b);
     },
     fiber(port, core) {
       const a = this.swPort(port === 1 ? 't1' : 't2'), rear = this.mounted && this.mounted.face === 'rear', out = rear ? -1 : 1;
@@ -282,16 +316,20 @@
       const topY = HGT + 0.9 + port * 0.25, pts = [a, V3(a.x, a.y, a.z + out * 1.0)];
       if (!rear) pts.push(V3(a.x, a.y + 0.2, ZF + 1.8), V3(W / 2 + 1.5, a.y, ZF + 1.8), V3(W / 2 + 1.5, topY, ZR - 1.4));
       pts.push(V3(a.x, topY, ZR - 1.4), V3(dst.x, topY, ZR - 1.4), V3(dst.x, dst.y + 0.6, ZR - 1.0), dst);
-      return this.tube(pts, COLORS.fiber, 0.035, 'fiber');
+      return this.tube(pts, COLORS.fiber, 0.035, 'fiber', 0xdde6ee);
     },
     consoleLine() {
       const lp = this.items.laptop.g.position, p = this.swPort('con'), rear = this.mounted && this.mounted.face === 'rear';
-      return this.tube([V3(lp.x + 1.2, lp.y + 0.2, lp.z), V3(lp.x + 4, 5, lp.z - 2), V3(-5, p.y - 1.6, (rear ? -1 : 1) * (ZF + 3)), V3(p.x, p.y, p.z + (rear ? -1 : 1) * 0.9), p], 0x4fa3d9, 0.04, 'console');
+      return this.tube([V3(lp.x + 1.2, lp.y + 0.2, lp.z), V3(lp.x + 4, 5, lp.z - 2), V3(-5, p.y - 1.6, (rear ? -1 : 1) * (ZF + 3)), V3(p.x, p.y, p.z + (rear ? -1 : 1) * 0.9), p], 0x4fa3d9, 0.04, 'console', 0x2a3036);
     },
     reset() {
-      this.tweens = []; this.setTargets([]); this.setHeld(null); this.pickU(false); this.clearCables(); this.pduAt = {};
+      this.tweens = []; this.setTargets([]); this.setHeld(null); this.pickU(false); this.clearCables(); this.pduAt = {}; this.pops = []; this.timers = []; this.draws = [];
+      this.hw.forEach(m => this.root.remove(m)); this.hw = [];
+      this.items.switch.home.copy(this.swBoxPos); this.items.switch.homeRot = 0;
       Object.values(this.items).forEach(it => { it.g.position.copy(it.home); it.g.rotation.y = it.homeRot; it.placed = false; it.g.visible = true; });
-      this.sw.visible = false; this.items.switch.enabled = false; this.items.box.g.userData.open = 0; this.mounted = null;
+      const bu = this.items.box.g.userData; bu.tape.scale.x = 1; bu.front.rotation.x = 0; bu.back.rotation.x = 0; this.boxAnim = null; this.bagAnim = null; this.boxOpen = false;
+      this.bag.visible = true; this.bag.material.opacity = 0.3; this.bag.scale.set(1, 1, 1);
+      this.sw.visible = false; this.items.switch.enabled = false; this.items.box.pickable = true; this.mounted = null;
       if (this.railsMesh) { this.root.remove(this.railsMesh); this.railsMesh = null; }
       Object.values(this.items).filter(i => i.kind === 'pdu').forEach(i => this.pduLabel(i.id, i.rating + 'A', 'rgba(255,255,255,.9)', '#1b2127'));
       this.swState = { sys: 'off', up: [false, false], psuLed: false, inlet: [false, false], con: false }; this.refreshFace();
@@ -333,15 +371,16 @@
     setView(name, o) {
       const u = (o && o.u) || 40, y = yOf(u);
       const P = {
-        table: { az: 8, pol: 70, dist: 34, ty: 7, tx: -12 },
+        table: { az: 10, pol: 62, dist: 28, ty: 8, tx: -15 },
+        unbox: { az: 16, pol: 56, dist: 16, ty: 9, tx: -18 },
         wide: { az: 0, pol: 82, dist: 46, ty: 8, tx: -4 },
-        pdu: { az: 196, pol: 76, dist: 48, ty: 9, tx: -11 },
+        pdu: { az: 196, pol: 76, dist: 54, ty: 9, tx: -15 },
         rails: { az: 0, pol: 84, dist: 17, ty: y, tx: -1 },
         rearUp: { az: 180, pol: 80, dist: 21, ty: y - 3, tx: 1 },
         rearCore: { az: 190, pol: 74, dist: 30, ty: y - 1, tx: 5 },
-        mountWide: { az: 0, pol: 80, dist: 38, ty: 9, tx: -6 },
-        powerWide: { az: 212, pol: 76, dist: 38, ty: 10, tx: -5 },
-        fiberWide: { az: 206, pol: 74, dist: 48, ty: 11, tx: -1 },
+        mountWide: { az: 0, pol: 80, dist: 40, ty: 10, tx: -10 },
+        powerWide: { az: 212, pol: 74, dist: 34, ty: 10, tx: -8 },
+        fiberWide: { az: 206, pol: 74, dist: 46, ty: 11, tx: -3 },
         con: { az: 2, pol: 78, dist: 24, ty: y, tx: -6 },
         done: { az: 28, pol: 78, dist: 40, ty: 8, tx: 0 },
       };
@@ -353,15 +392,26 @@
     tick() {
       const now = performance.now(), dt = Math.min(0.05, (now - this.clock) / 1000); this.clock = now;
       // 비행
+      const fin = [];
       this.tweens = this.tweens.filter(t => {
-        t.t += dt / t.dur; const k = Math.min(1, t.t), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        t.t += dt / t.dur; const k = Math.min(1, t.t), e = ease(k);
         t.g.position.lerpVectors(t.p0, t.p1, e); t.g.position.y += Math.sin(Math.PI * k) * t.arc; t.g.rotation.y = t.r0 + (t.r1 - t.r0) * e;
-        if (k >= 1) { t.g.position.copy(t.p1); t.g.rotation.y = t.r1; t.cb && t.cb(); return false; } return true;
+        if (k >= 1) { fin.push(t); return false; } return true;
       });
+      fin.forEach(t => { t.g.position.copy(t.p1); t.g.rotation.y = t.r1; t.cb && t.cb(); });
       // 집고 있는 물건은 살짝 들림
       Object.values(this.items).forEach(it => { if (!it.placed && !this.tweens.some(t => t.g === it.g)) { const ty = it.home.y + (this.heldId === it.id ? 0.9 : 0); it.g.position.y += (ty - it.g.position.y) * 0.25; } });
       // 박스 뚜껑
-      const bx = this.items.box.g.userData; bx.p1.rotation.x += ((bx.open ? -2.2 : 0) - bx.p1.rotation.x) * 0.12; bx.p2.rotation.x += ((bx.open ? 2.2 : 0) - bx.p2.rotation.x) * 0.12;
+      const ba = this.boxAnim, bu = this.items.box.g.userData;
+      if (ba) { ba.t = Math.min(1, ba.t + dt / 1.9); const e = ease(ba.t); bu.tape.scale.x = Math.max(0.001, 1 - Math.min(1, ba.t * 2.2)); bu.front.rotation.x = 2.7 * e; bu.back.rotation.x = -2.7 * e; if (ba.t >= 1) { this.boxAnim = null; this.boxOpen = true; ba.cb && ba.cb(); } }
+      const bg = this.bagAnim; if (bg) { bg.t = Math.min(1, bg.t + dt / 1.1); this.bag.material.opacity = 0.3 * (1 - bg.t); this.bag.scale.y = 1 + bg.t * 0.4; if (bg.t >= 1) { this.bag.visible = false; this.bagAnim = null; } }
+      this.pops = this.pops.filter(q => { q.t += dt; if (q.t < 0) return true; const k = Math.min(1, q.t / q.dur); q.m.scale.setScalar(Math.max(0.01, k * (2 - k))); return k < 1; });
+      const due = []; this.timers = this.timers.filter(q => { q.t -= dt; if (q.t <= 0) { due.push(q); return false; } return true; }); due.forEach(q => q.fn());
+      this.draws = this.draws.filter(d => {
+        if (!d.started) { d.started = true; const p = box(0.32, 0.32, 0.32, d.pc, 0.5); p.position.copy(d.a); d.grp.add(p); }
+        d.t += dt / 1.5; const k = Math.min(1, d.t), e = ease(k); d.geo.setDrawRange(0, Math.floor(d.total * e / 3) * 3);
+        if (k >= 1) { d.geo.setDrawRange(0, d.total); const p = box(0.32, 0.32, 0.32, d.pc, 0.5); p.position.copy(d.b); d.grp.add(p); return false; } return true;
+      });
       // 강조 상자
       const hv = this.hoverRef; if (hv && hv.obj && (hv.t === 'target' || (this.items[hv.id] && this.items[hv.id].g.visible))) { this.hbox.box.setFromObject(hv.obj); this.hbox.visible = true; } else this.hbox.visible = false;
       if (this.heldId) { this.kbox.box.setFromObject(this.items[this.heldId].g); this.kbox.visible = true; } else this.kbox.visible = false;

@@ -5,21 +5,24 @@ const OUT = process.env.OUT || '/tmp/e2e-';
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: 1440, height: 860 }, deviceScaleFactor: 1 });
-  const errs = []; p.on('pageerror', e => errs.push('PAGEERR ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE ' + m.text()); });
+  const errs = []; p.on('pageerror', e => { errs.push('PAGEERR ' + e.message); console.log('PAGEERR', e.message); }); p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE ' + m.text()); });
   await p.goto(URL); await p.waitForTimeout(600);
-  const settle = async () => { await p.waitForFunction(() => !__lab.Scene3D.goal && !__lab.Scene3D.tweens.length, null, { timeout: 8000 }); await p.waitForTimeout(150); };
+  const settle = async () => { await p.waitForFunction(() => !__lab.Scene3D.goal && !__lab.Scene3D.tweens.length && !__lab.Scene3D.timers.length && !__lab.Scene3D.draws.length && !__lab.Scene3D.boxAnim && !__lab.Scene3D.pops.length, null, { timeout: 8000 }); await p.waitForTimeout(150); };
   const clickItem = async id => { await settle(); const pt = await p.evaluate(i => __lab.Scene3D.screenOfItem(i), id); await p.mouse.move(pt.x, pt.y); await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(100); await settle(); };
   const clickTarget = async id => { await settle(); const pt = await p.evaluate(i => __lab.Scene3D.screenOfTarget(i), id); if (!pt) throw new Error('no target ' + id); await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(150); };
   const clickU = async u => { await settle(); const pt = await p.evaluate(u => { const C = __lab.Scene3D.consts; return __lab.Scene3D.project(new THREE.Vector3(0, C.yOf(u), 0)); }, u); await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(200); };
   const fb = async () => ((await p.textContent('.fb').catch(() => '')) || '').slice(0, 60);
   const shot = n => p.screenshot({ path: OUT + n + '.png' });
-  const step = async n => console.log(n.padEnd(14), await fb(), JSON.stringify(await p.evaluate(() => ({ m: __lab.S.mount, held: __lab.S.held, goal: !!__lab.Scene3D.goal, tw: __lab.Scene3D.tweens.length }))));
+  const step = async n => console.log(n.padEnd(14), await fb(), JSON.stringify(await p.evaluate(() => ({ m: __lab.S.mount, held: __lab.S.held, goal: !!__lab.Scene3D.goal, tw: __lab.Scene3D.tweens.length, tm: __lab.Scene3D.timers.length, mnt: !!__lab.Scene3D.mounted, fbS: __lab.S.fb && __lab.S.fb.title }))));
 
   // 1 입고
   await settle(); await shot('1-recv');
   const scen = await p.evaluate(() => __lab.S.scen);
+  await clickItem('box'); await p.waitForTimeout(500); await shot('1a-opening'); await p.waitForTimeout(1900); await shot('1b-opened');
   for (const id of { clean: [], serial: ['serial'], missing: ['sfp'], damaged: ['look'] }[scen]) await p.click('[data-act=flag][data-id=' + id + ']');
-  await p.click('[data-act=recv-submit]'); await p.waitForTimeout(1200); await shot('1b-opened'); await p.click('[data-act=next]');
+  await p.click('[data-act=recv-submit]'); await settle();
+  await clickItem('switch'); await p.waitForTimeout(900); await shot('1c-lifting'); await p.waitForTimeout(2600); await settle(); await shot('1d-unpacked');
+  await p.click('[data-act=next]');
   // 2 PDU: 먼저 16A (실패 기대) -> 다시 꺼내기 -> 32A
   await settle(); await shot('2-pdu-start');
   await p.fill('#p-total', '17.05'); await p.fill('#p-norm', '8.5'); await p.fill('#p-fail', '17.05'); await p.fill('#p-warn', '22.4'); await p.fill('#p-crit', '25.6');
@@ -33,10 +36,10 @@ const OUT = process.env.OUT || '/tmp/e2e-';
   // 3 마운트: 레일(잘못된 U20) -> 레일 U39 -> 스위치 방향 전면(실패) -> 다시 -> 후면
   await settle();
   await clickItem('rails'); await clickU(37); await step('rails U37:');
-  await clickItem('rails'); await clickU(39); await settle(); await step('rails U39:'); await shot('3-rails');
+  await clickItem('rails'); await clickU(39); await p.waitForTimeout(1500); await shot('3a-flying'); await settle(); await p.waitForTimeout(1800); await step('rails U39:'); await shot('3-rails');
   await p.check('input[name=face][value=front]'); await clickItem('switch'); await clickU(39); await settle(); await step('face front:'); await shot('3b-wrongface');
   await p.click('[data-act=mount-redo]'); await settle();
-  await p.check('input[name=face][value=rear]'); await clickItem('switch'); await clickU(39); await settle(); await step('face rear:'); await shot('3c-ok');
+  await p.check('input[name=face][value=rear]'); await clickItem('switch'); await clickU(39); await p.waitForTimeout(1600); await shot('3b2-sliding'); await settle(); await p.waitForTimeout(1800); await step('face rear:'); await shot('3c-ok');
   await p.click('[data-act=next]');
   // 4 전원: 같은 PDU 먼저
   await settle(); await shot('4-power-start');
