@@ -4,6 +4,7 @@
   const C = Scene3D.consts;
   const STEPS = [
     { id: 'recv', t: '입고·검수', s: '입고서와 현물 대조' },
+    { id: 'pdu', t: 'PDU 설치', s: '전류 계산·정격·설치' },
     { id: 'mount', t: '랙 마운트', s: '위치와 방향 정하기' },
     { id: 'power', t: '전원 연결', s: 'A/B 이중화' },
     { id: 'fiber', t: '광 케이블링', s: '코어 두 대에 연결' },
@@ -11,7 +12,9 @@
     { id: 'mon', t: '관제 연동', s: '등록하고 그래프 확인' },
     { id: 'done', t: '완료', s: '작업 기록' },
   ];
-  const USED_OUTLETS = 7; // 콘센트 1~7번은 이미 서버가 꽂혀 있다고 가정
+  const IX = id => STEPS.findIndex(x => x.id === id);
+  // 가상 전력 조건 (제가 만든 값)
+  const VOLT = 220, SERVERS = 8, SERVER_W = 450, SW_W = 150, LOAD_W = SERVERS * SERVER_W + SW_W, LOAD_A = LOAD_W / VOLT;
   const SERIAL = 'FOC2547A1BQ';
   let S, timer;
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -28,16 +31,17 @@
         { id: 'cord', name: '전원 코드', note: '2개', box: '2개' },
         { id: 'rail', name: '랙 레일 킷', note: '1세트', box: '1세트' },
         { id: 'sfp', name: 'SFP+ 광 모듈', note: '2개', box: scen === 'missing' ? '1개' : '2개' },
+        { id: 'pdu', name: 'PDU(멀티탭)', note: '2대', box: '2대' },
         { id: 'look', name: '외관', note: '이상 없음', box: scen === 'damaged' ? '랙 귀(브래킷) 휘어짐' : '이상 없음' },
       ],
       flags: {}, recvOk: false,
-      mount: { u: 38, face: 'rear', ok: false },
+      pdu: { ok: false }, mount: { u: 40, face: 'rear', ok: false },
       power: { 1: { side: 'A', out: 8 }, 2: { side: 'B', out: 8 }, ok: false },
       fiber: { 1: { core: '', wrong: false, label: false }, 2: { core: '', wrong: false, label: false }, polBad: pick([[true, false], [false, true], [false, false]]), ok: false },
       mon: { reg: false, ok: false, t: null }, cliLog: [], hist: [], histIdx: 0,
     };
     S.dev = new LabCLI.Device({ serial: SERIAL, link: linkOf });
-    Scene3D.unmount(); Scene3D.ghost(null);
+    Scene3D.unmount(); Scene3D.ghost(null); Scene3D.resetPdus();
     Scene3D.setSwState({ sys: 'off', up: [false, false], psuLed: false });
   }
   function linkOf(n) {
@@ -55,7 +59,7 @@
   function head() {
     $('#miss').textContent = '실수 ' + S.miss;
     $('#steps').innerHTML = '<ol>' + STEPS.map((s, i) =>
-      '<li class="' + (i < S.step ? 'done' : '') + (i === S.step ? ' cur' : '') + '"' + (i <= S.max && i >= 4 && i < 6 ? ' data-act="goto" data-i="' + i + '" style="cursor:pointer"' : '') + '><div>' + s.t + '<small>' + s.s + '</small></div></li>').join('') + '</ol>';
+      '<li class="' + (i < S.step ? 'done' : '') + (i === S.step ? ' cur' : '') + '"' + (i <= S.max && (i === IX('cli') || i === IX('mon')) ? ' data-act="goto" data-i="' + i + '" style="cursor:pointer"' : '') + '><div>' + s.t + '<small>' + s.s + '</small></div></li>').join('') + '</ol>';
   }
   function tick() {
     const ms = (S.tEnd || Date.now()) - S.t0, m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60;
@@ -63,7 +67,7 @@
   }
   function go(i) {
     S.step = i; S.max = Math.max(S.max, i); S.fb = null; render();
-    const v = ['front', 'front', 'rear', 'top', 'top', 'top', 'front'][i]; Scene3D.setView(v);
+    Scene3D.setView({ recv: 'front', pdu: 'pdu', mount: 'front_up', power: 'rear', fiber: 'top', cli: 'top', mon: 'top', done: 'front' }[STEPS[i].id]);
   }
 
   /* ---------- 단계별 화면 ---------- */
@@ -84,12 +88,34 @@
         S.rows.map(r => '<tr><td>' + r.name + '</td><td class="mono">' + esc(r.note) + '</td><td class="mono">' + esc(r.box) + '</td><td>' +
           '<button class="flag' + (S.flags[r.id] ? ' on' : '') + '" data-act="flag" data-id="' + r.id + '" type="button" aria-pressed="' + !!S.flags[r.id] + '"' + (done ? ' disabled' : '') + '>' + (S.flags[r.id] ? '이상' : '정상') + '</button></td></tr>').join('') +
         '</table><p class="mini">다른 점이 있는 줄만 "이상"으로 바꾸세요. 모두 같으면 그대로 제출합니다.</p>' +
-        '<div class="row">' + (done ? '<button class="btn" data-act="next" type="button">다음: 랙 마운트</button>' : '<button class="btn" data-act="recv-submit" type="button">검수 결과 제출</button>') + '</div>' +
+        '<div class="row">' + (done ? '<button class="btn" data-act="next" type="button">다음: PDU 설치</button>' : '<button class="btn" data-act="recv-submit" type="button">검수 결과 제출</button>') + '</div>' +
         fbHtml() + (done ? '' : hintBtn('글자를 한 자씩 읽어 보세요. 시리얼은 한 글자만 달라도 다른 장비입니다. 개수도 입고서와 같은지 보세요.'));
+    },
+    pdu() {
+      const P = S.pdu, I = S.pduIn || {}, v = (id, ph) => '<input id="' + id + '" type="number" step="0.1" min="0" value="' + (I[id] == null ? '' : I[id]) + '" placeholder="' + ph + '" style="width:92px" ' + (P.ok ? 'disabled' : '') + '>';
+      const sel = (id, opts, cur) => '<select id="' + id + '"' + (P.ok ? ' disabled' : '') + '>' + opts.map(o => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
+      return '<h2>2. PDU(멀티탭) 설치</h2><p class="sub">랙 옆에 세워 둔 PDU 2대를 꺼내 랙 후면에 답니다. 먼저 전류를 계산해서 정격을 정합니다.</p>' +
+        '<div class="why"><b>PDU란</b> 랙 안에서 쓰는 전원 멀티탭입니다. 서버·스위치 전원이 여기에 꽂힙니다. 전원 계통이 두 개(A/B)라 PDU도 2대입니다.</div>' +
+        '<h3>작업 요청서 (가상)</h3><table class="cmp" style="font-size:13px">' +
+        '<tr><td>전압</td><td>단상 ' + VOLT + 'V</td></tr>' +
+        '<tr><td>이 랙의 예정 부하</td><td>서버 ' + SERVERS + '대 × ' + SERVER_W + 'W + 스위치 1대 ' + SW_W + 'W = <b>' + LOAD_W.toLocaleString() + 'W</b></td></tr>' +
+        '<tr><td>전원 구성</td><td>A/B 이중화. 평소엔 반반 나눠 씀</td></tr>' +
+        '<tr><td>안전 기준</td><td>PDU 정격 전류의 <b>80%</b>까지만 사용</td></tr>' +
+        '<tr><td>경보 설정</td><td>정격의 70%에서 경고, 80%에서 위험</td></tr>' +
+        '<tr><td>설치 위치</td><td>PDU-A 후면 <b>왼쪽</b>, PDU-B 후면 <b>오른쪽</b></td></tr></table>' +
+        '<h3>① 전류 계산 &nbsp;<span class="mini">전류(A) = 전력(W) ÷ 전압(V)</span></h3>' +
+        '<div class="row">총 부하 ' + v('p-total', 'A') + ' A</div>' +
+        '<div class="row">평소 PDU 1대 부하 ' + v('p-norm', 'A') + ' A</div>' +
+        '<div class="row">한쪽이 꺼졌을 때 남은 PDU 1대 부하 ' + v('p-fail', 'A') + ' A</div>' +
+        '<h3>② PDU 정격</h3><div class="row">' + sel('p-rate', [[0, '선택'], [16, '16A'], [20, '20A'], [32, '32A']], +I['p-rate'] || 0) + '</div>' +
+        '<h3>③ PDU 경보 임계값</h3><div class="row">경고 ' + v('p-warn', 'A') + ' A &nbsp; 위험 ' + v('p-crit', 'A') + ' A</div>' +
+        '<h3>④ 설치 위치 (후면에서 본 방향)</h3><div class="row">PDU-A ' + sel('p-sa', [['L', '왼쪽'], ['R', '오른쪽']], I['p-sa'] || 'L') + ' &nbsp; PDU-B ' + sel('p-sb', [['L', '왼쪽'], ['R', '오른쪽']], I['p-sb'] || 'R') + '</div>' +
+        '<div class="row">' + (P.ok ? '<button class="btn" data-act="next" type="button">다음: 랙 마운트</button>' : '<button class="btn" data-act="pdu-do" type="button">계산 확인하고 PDU 설치</button>') + '</div>' +
+        fbHtml() + (P.ok ? '' : hintBtn('정상 시에는 두 PDU가 부하를 반반 나눠 갖고, 한쪽이 꺼지면 남은 한 대가 전부 감당합니다. 그때 부하가 "정격 × 0.8"을 넘으면 안 됩니다.'));
     },
     mount() {
       const m = S.mount, done = m.ok;
-      return '<h2>2. 랙 마운트</h2><p class="sub">비어 있는 U와 장비 방향을 정해 랙에 넣습니다. 3D 랙을 클릭해도 U가 선택됩니다.</p>' +
+      return '<h2>3. 랙 마운트</h2><p class="sub">비어 있는 U와 장비 방향을 정해 랙에 넣습니다. 3D 랙을 클릭해도 U가 선택됩니다.</p>' +
         '<div class="why"><b>이 장비의 특징 (제가 정한 가상 모델)</b> 1U 스위치. 포트 48개·전원(PSU 2개)·팬이 <b>한쪽 면</b>에 몰려 있고, 그 면으로 더운 공기를 내보냅니다. 반대면이 흡기입니다.</div>' +
         '<h3>위치 (U 번호, 아래가 1)</h3><div class="row"><button class="btn ghost" data-act="u-" type="button" aria-label="한 칸 아래">−</button>' +
         '<input id="u" type="number" min="1" max="42" value="' + m.u + '" style="width:70px" data-act="u-in"><button class="btn ghost" data-act="u+" type="button" aria-label="한 칸 위">+</button>' +
@@ -97,14 +123,14 @@
         '<h3>포트·전원이 있는 면을 어느 쪽으로?</h3><div class="row"><label><input type="radio" name="face" value="front"' + (m.face === 'front' ? ' checked' : '') + ' data-act="face"> 전면(콜드 아일)</label>' +
         '<label><input type="radio" name="face" value="rear"' + (m.face === 'rear' ? ' checked' : '') + ' data-act="face"> 후면(핫 아일, 서버 NIC가 있는 쪽)</label></div>' +
         '<div class="row">' + (done ? '<button class="btn" data-act="next" type="button">다음: 전원 연결</button>' : '<button class="btn" data-act="mount-do" type="button">장착</button>') + '</div>' +
-        fbHtml() + (done ? '' : hintBtn('패치패널(U41)과 케이블 매니저(U40)가 맨 위에 있습니다. 스위치는 그 바로 아래에 두는 게 일반적입니다. 면은 "더운 공기가 나가는 면"이 어느 aisle을 향해야 하는지 생각해 보세요.'));
+        fbHtml() + (done ? '' : hintBtn('빈 랙입니다. 아래쪽은 무거운 서버 ' + SERVERS + '대가 들어갈 자리입니다. 스위치는 서버와 연결되니 위쪽에 두는 "TOR(Top of Rack)" 구성이 일반적입니다. 면은 "더운 공기가 나가는 면"이 어느 aisle을 향해야 하는지 생각해 보세요.'));
     },
     power() {
-      const o = (n, sel) => Array.from({ length: 12 }, (_, i) => '<option value="' + (i + 1) + '"' + (i + 1 === sel ? ' selected' : '') + '>' + (i + 1) + '번' + (i + 1 <= USED_OUTLETS ? ' (사용 중)' : '') + '</option>').join('');
+      const o = (n, sel) => Array.from({ length: 12 }, (_, i) => '<option value="' + (i + 1) + '"' + (i + 1 === sel ? ' selected' : '') + '>' + (i + 1) + '번</option>').join('');
       const row = n => '<div class="row"><b style="width:50px">PSU' + n + '</b><select id="s' + n + '"><option value="A"' + (S.power[n].side === 'A' ? ' selected' : '') + '>PDU-A</option><option value="B"' + (S.power[n].side === 'B' ? ' selected' : '') + '>PDU-B</option></select>' +
         '<select id="o' + n + '">' + o(n, S.power[n].out) + '</select></div>';
-      return '<h2>3. 전원 연결</h2><p class="sub">전원 모듈 2개를 PDU 콘센트에 연결합니다. 후면에서 보면 왼쪽이 PDU-A, 오른쪽이 PDU-B입니다.</p>' +
-        '<div class="why"><b>상황</b> PDU 콘센트 1~7번에는 이미 서버 전원이 꽂혀 있습니다. 빈 콘센트에 꽂아야 합니다.</div>' +
+      return '<h2>4. 전원 연결</h2><p class="sub">전원 모듈 2개를 PDU 콘센트에 연결합니다. 후면에서 보면 왼쪽이 PDU-A, 오른쪽이 PDU-B입니다.</p>' +
+        '<div class="why"><b>전류</b> 이 스위치는 ' + SW_W + 'W 입니다. PSU 2개가 반반 나눠 쓰므로 각 PSU는 약 ' + (SW_W / 2 / VOLT).toFixed(2) + 'A 입니다.</div>' +
         row(1) + row(2) +
         '<div class="row">' + (S.power.ok ? '<button class="btn" data-act="next" type="button">다음: 광 케이블링</button>' : '<button class="btn" data-act="power-do" type="button">연결하고 전원 켜기</button>') + '</div>' +
         fbHtml() + (S.power.ok ? '' : hintBtn('PDU는 서로 다른 전원 계통(A/B)입니다. 한쪽 계통이 정전·차단기 작업으로 꺼져도 장비가 살아 있으려면 PSU 두 개를 어떻게 나눠야 할까요?'));
@@ -119,7 +145,7 @@
             '<label class="mini"><input type="checkbox" data-act="label" data-i="' + i + '"' + (x.label ? ' checked' : '') + '> 양끝 라벨</label>' : '<button class="btn ghost" data-act="connect" data-i="' + i + '" type="button">연결</button>') + '</div>';
       };
       const ready = f[1].core && f[2].core && f[1].core !== f[2].core && !f[1].wrong && !f[2].wrong && f[1].label && f[2].label;
-      return '<h2>4. 광 케이블링</h2><p class="sub">업링크 T1(Te1/1/1), T2(Te1/1/2)를 옆 랙의 코어 스위치에 광으로 연결합니다.</p>' +
+      return '<h2>5. 광 케이블링</h2><p class="sub">업링크 T1(Te1/1/1), T2(Te1/1/2)를 옆 랙의 코어 스위치에 광으로 연결합니다.</p>' +
         '<div class="why"><b>알아둘 것</b> 광은 한 가닥이 Tx(송신), 한 가닥이 Rx(수신)입니다. 한쪽의 Tx는 반대쪽 Rx로 가야 합니다. 3D에서 노란 선이 광 케이블입니다.</div>' +
         row(1) + row(2) +
         '<p class="mini">링크가 DOWN이면 케이블이 연결돼도 불이 안 들어옵니다. 원인을 찾아 고치세요. 연결이 끝나면 라벨을 붙입니다.</p>' +
@@ -128,7 +154,7 @@
     },
     cli() {
       const R = LabCLI.REQ;
-      return '<h2>5. 콘솔 설정</h2><p class="sub">콘솔 케이블로 접속했습니다. 작업 요청서대로 설정하고 저장하세요. (가상 장비, 실제 접속 아님)</p>' +
+      return '<h2>6. 콘솔 설정</h2><p class="sub">콘솔 케이블로 접속했습니다. 작업 요청서대로 설정하고 저장하세요. (가상 장비, 실제 접속 아님)</p>' +
         '<h3>작업 요청서</h3><table class="cmp mono" style="font-size:12px">' +
         '<tr><td>호스트명</td><td>' + R.host + '</td></tr><tr><td>관리 VLAN</td><td>99 (MGMT), 서버 VLAN 100</td></tr><tr><td>관리 IP</td><td>' + R.ip + ' / ' + R.mask + '</td></tr>' +
         '<tr><td>게이트웨이</td><td>' + R.gw + '</td></tr><tr><td>업링크</td><td>Te1/1/1(CORE-A), Te1/1/2(CORE-B): trunk, VLAN 99·100</td></tr><tr><td>SNMP</td><td>' + R.community + ' (읽기 전용)</td></tr></table>' +
@@ -140,7 +166,7 @@
     },
     mon() {
       const d = S.dev, M = S.mon;
-      return '<h2>6. 관제 연동</h2><p class="sub">관제 시스템에 새 장비를 등록하고, 트래픽 그래프가 들어오는지 확인합니다.</p>' +
+      return '<h2>7. 관제 연동</h2><p class="sub">관제 시스템에 새 장비를 등록하고, 트래픽 그래프가 들어오는지 확인합니다.</p>' +
         '<div class="why"><b>순서</b> 등록 → 검증(ping, SNMP 응답) → 5분 대기 후 첫 그래프. 설정한 값과 등록한 값이 한 글자라도 다르면 데이터가 안 들어옵니다.</div>' +
         '<h3>관제 등록 화면</h3><table class="cmp">' +
         '<tr><td>장비명</td><td><input id="m-name" type="text" value="' + esc(M.reg ? M.v.name : '') + '" placeholder="콘솔에서 정한 이름" style="width:100%"></td></tr>' +
@@ -167,6 +193,7 @@
     const m = S.mount, p = S.power, f = S.fiber, d = S.dev;
     return ['[신규 장비 설치 작업 기록 - 가상 실습]',
       '장비: NX-4824T (가상) / 시리얼 ' + SERIAL + ' / 입고 검수: ' + ({ clean: '이상 없음', serial: '시리얼 불일치 → 교체 접수 가정', missing: 'SFP+ 1개 누락 → 추가 요청 가정', damaged: '랙 귀 휘어짐 → 교체 접수 가정' }[S.scen]),
+      'PDU: PDU-A(후면 좌)·PDU-B(후면 우) 각 ' + S.pdu.rate + 'A, 경고 ' + S.pdu.warn + 'A / 위험 ' + S.pdu.crit + 'A (예정 부하 ' + LOAD_A.toFixed(1) + 'A, 한쪽 장애 시에도 한도 ' + (S.pdu.rate * 0.8).toFixed(1) + 'A 이내)',
       '위치: R12 U' + m.u + ' (포트면 후면)', '전원: PSU1 → PDU-' + p[1].side + ' ' + p[1].out + '번, PSU2 → PDU-' + p[2].side + ' ' + p[2].out + '번',
       '업링크: Te1/1/1 ↔ ' + f[1].core + ' Te1/0/12, Te1/1/2 ↔ ' + f[2].core + ' Te1/0/12' + (f[1].wrong || f[2].wrong ? '' : ' (광 극성 확인 완료)'),
       '설정: ' + d.host + ', Vlan99 ' + LabCLI.REQ.ip + '/24, GW ' + LabCLI.REQ.gw + ', 업링크 trunk(99,100), SNMP RO, write memory 완료',
@@ -186,12 +213,10 @@
   });
   document.addEventListener('keydown', e => { if (e.target.id === 'u' && e.key === 'Enter') ACT['mount-do'](); });
 
-  const occupied = u => C.PRE.some(d => u >= d.u && u < d.u + d.h);
   function mountRule(u, face) {
     if (!(u >= 1 && u <= 42)) return { ok: false, t: 'U 범위(1~42)를 벗어났습니다.' };
-    if (occupied(u)) return { ok: false, t: 'U' + u + ' 에는 이미 장비가 있습니다.' };
     if (u === 42) return { ok: false, t: 'U42(맨 위)는 케이블 트레이를 잡는 점검 공간이라 비워 두는 규칙입니다.' };
-    if (u < 37) return { ok: false, t: 'U' + u + ': 패치패널(U41)·코어 쪽 광 케이블이 길어지고 랙이 지저분해집니다. 케이블이 닿는 상단 구역에 둡니다.' };
+    if (u < 38) return { ok: false, t: 'U' + u + ': 아래~중간은 서버 ' + SERVERS + '대가 들어갈 자리입니다. 스위치는 서버와 케이블로 이어지니 랙 상단(U38~41)에 둡니다(TOR 구성, 제가 정한 가정).' };
     return { ok: true, t: 'U' + u + ' 사용 가능' };
   }
 
@@ -212,6 +237,24 @@
         fail('검수 결과가 맞지 않습니다', (missed.length ? '놓친 항목: <b>' + missed.map(k => S.rows.find(r => r.id === k).name).join(', ') + '</b>. ' : '') + (extra.length ? '정상인데 이상으로 표시한 항목: <b>' + extra.map(k => S.rows.find(r => r.id === k).name).join(', ') + '</b>. ' : '') + '입고서와 박스 값을 다시 비교하세요.');
         render();
       }
+    },
+    'pdu-do'() {
+      const n = id => parseFloat($('#' + id).value), near = (a, b, t) => Math.abs(a - b) <= t;
+      const tot = n('p-total'), nor = n('p-norm'), fl = n('p-fail'), rate = +$('#p-rate').value, warn = n('p-warn'), crit = n('p-crit');
+      const sa = $('#p-sa').value, sb = $('#p-sb').value;
+      S.pduIn = {}; ['p-total', 'p-norm', 'p-fail', 'p-rate', 'p-warn', 'p-crit', 'p-sa', 'p-sb'].forEach(k => { S.pduIn[k] = $('#' + k).value; });
+      const f = (t, m) => { fail(t, m); render(); };
+      if (!near(tot, LOAD_A, 0.3)) return f('총 부하 전류가 맞지 않습니다', '전류(A) = 전력(W) ÷ 전압(V) 입니다. 총 전력은 ' + SERVERS + '×' + SERVER_W + ' + ' + SW_W + ' = ' + LOAD_W + 'W, 전압은 ' + VOLT + 'V 입니다.');
+      if (!near(nor, LOAD_A / 2, 0.2)) return f('평소 PDU 1대 부하가 맞지 않습니다', 'A/B 두 대가 부하를 반반 나눠 가지므로 총 부하의 절반입니다.');
+      if (!near(fl, LOAD_A, 0.3)) return f('한쪽 장애 시 부하가 맞지 않습니다', '한쪽 PDU(전원 계통)가 꺼지면 남은 PDU 1대가 총 부하를 전부 감당합니다.');
+      if (!rate) return f('PDU 정격을 고르세요', '한쪽 장애 시 부하를 감당할 수 있는 정격이어야 합니다.');
+      if (LOAD_A > rate * 0.8) return f(rate + 'A PDU로는 부족합니다', '사용 한도는 ' + rate + 'A × 80% = <b>' + (rate * 0.8).toFixed(1) + 'A</b> 인데, 한쪽 장애 시 부하는 ' + LOAD_A.toFixed(1) + 'A 입니다. 이 상태에서 한 계통이 꺼지면 남은 PDU의 차단기가 내려가 랙 전체가 정전될 수 있습니다.');
+      if (!near(warn, rate * 0.7, 0.3) || !near(crit, rate * 0.8, 0.3)) return f('경보 임계값이 맞지 않습니다', rate + 'A 기준 경고 = ' + rate + ' × 70% = ' + (rate * 0.7).toFixed(1) + 'A, 위험 = ' + rate + ' × 80% = ' + (rate * 0.8).toFixed(1) + 'A 입니다.');
+      if (sa === sb) return f('두 PDU를 같은 쪽에 달 수 없습니다', 'PDU-A와 PDU-B는 서로 반대 쪽 기둥에 답니다.');
+      if (sa !== 'L') return f('위치가 요청서와 다릅니다', '작업 요청서는 PDU-A 후면 왼쪽, PDU-B 후면 오른쪽입니다. 후면에서 보는 방향 기준으로 일관되게 달아야 나중에 헷갈리지 않습니다.');
+      S.pdu = { ok: true, rate, warn, crit };
+      Scene3D.installPdu('A', sa, 'PDU-A ' + rate + 'A'); Scene3D.installPdu('B', sb, 'PDU-B ' + rate + 'A'); Scene3D.setView('rear');
+      good('PDU 설치 완료', '각 PDU ' + rate + 'A, 경고 ' + warn + 'A / 위험 ' + crit + 'A. 한쪽 장애 시에도 ' + LOAD_A.toFixed(1) + 'A ≤ 사용 한도 ' + (rate * 0.8).toFixed(1) + 'A 로 버팁니다.'); render();
     },
     'u-'() { $('#u').value = Math.max(1, +$('#u').value - 1); ACT.preview(); },
     'u+'() { $('#u').value = Math.min(42, +$('#u').value + 1); ACT.preview(); },
@@ -238,16 +281,12 @@
       const g = n => ({ side: $('#s' + n).value, out: +$('#o' + n).value });
       S.power[1] = g(1); S.power[2] = g(2);
       Scene3D.clearCables(); Scene3D.power(1, S.power[1].side, S.power[1].out - 1); Scene3D.power(2, S.power[2].side, S.power[2].out - 1);
-      if (S.power[1].out <= USED_OUTLETS || S.power[2].out <= USED_OUTLETS) {
-        const n = S.power[1].out <= USED_OUTLETS ? 1 : 2;
-        fail('이미 사용 중인 콘센트입니다', 'PSU' + n + ' 가 꽂힌 ' + S.power[n].side + ' 계통 ' + S.power[n].out + '번에는 서버 전원이 연결돼 있습니다. 빈 콘센트(8~12번)에 꽂으세요.'); render(); return;
-      }
       if (S.power[1].side === S.power[2].side) {
         Scene3D.setSwState({ psuLed: true, sys: 'boot' });
         fail('두 PSU가 같은 PDU에 연결됐습니다', '이러면 PDU-' + S.power[1].side + ' 계통이 꺼지는 순간 스위치가 통째로 꺼집니다. 이중화 전원을 쓰는 이유가 사라집니다. PSU1과 PSU2를 서로 다른 PDU(A/B)에 나눠 꽂으세요.'); render(); return;
       }
       S.power.ok = true; Scene3D.setSwState({ psuLed: true, sys: 'boot' });
-      good('전원 이중화 완료', 'PSU1→PDU-' + S.power[1].side + ', PSU2→PDU-' + S.power[2].side + '. 전원이 들어가 부팅 중입니다(SYS 램프가 주황). 한 계통이 꺼져도 장비는 살아 있습니다.'); render();
+      good('전원 이중화 완료', 'PSU1→PDU-' + S.power[1].side + ', PSU2→PDU-' + S.power[2].side + '. 각 PDU 부하 약 ' + (SW_W / 2 / VOLT).toFixed(2) + 'A (사용 한도 ' + (S.pdu.rate * 0.8).toFixed(1) + 'A). 전원이 들어가 부팅 중입니다(SYS 램프가 주황). 한 계통이 꺼져도 장비는 살아 있습니다.'); render();
     },
     connect(el, i) {
       const v = $('#c' + i).value; if (!v) { fail('연결할 코어를 고르세요', 'T' + i + ' 가 연결될 코어 스위치를 먼저 선택합니다.'); render(); return; }
@@ -260,9 +299,9 @@
       render();
     },
     flip(el, i) { S.fiber[i].wrong = !S.fiber[i].wrong; syncLeds(); good('Tx/Rx를 뒤집었습니다', 'T' + i + ' 링크가 ' + (S.fiber[i].wrong ? '여전히 DOWN' : 'UP으로 올라왔습니다') + '.'); render(); },
-    'fiber-done'() { Scene3D.setSwState({ sys: 'ok' }); go(4); },
-    'cli-next'() { go(5); },
-    'cli-back'() { go(4); },
+    'fiber-done'() { Scene3D.setSwState({ sys: 'ok' }); go(IX('cli')); },
+    'cli-next'() { go(IX('mon')); },
+    'cli-back'() { go(IX('cli')); },
     'mon-reg'() {
       const v = { name: $('#m-name').value.trim(), ip: $('#m-ip').value.trim(), comm: $('#m-comm').value.trim() };
       const d = S.dev, svi = d.svi[99] || {}, bad = [];

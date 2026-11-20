@@ -2,13 +2,8 @@
 (function (root) {
   const U = 0.445, W = 4.83, DEP = 6.0, BASE = 0.35, TOTAL_U = 42;
   const yOf = u => BASE + (u - 1) * U + U / 2;
-  const PRE = [
-    { u: 1, h: 2, name: 'SRV-DB-01', kind: 'srv' }, { u: 3, h: 2, name: 'SRV-DB-02', kind: 'srv' },
-    { u: 5, h: 2, name: 'SRV-WEB-01', kind: 'srv' }, { u: 7, h: 2, name: 'SRV-WEB-02', kind: 'srv' },
-    { u: 9, h: 1, name: 'STO-CTRL', kind: 'srv' }, { u: 10, h: 3, name: 'STO-DISK', kind: 'disk' },
-    { u: 13, h: 2, name: 'SRV-APP-01', kind: 'srv' }, { u: 15, h: 2, name: 'SRV-APP-02', kind: 'srv' },
-    { u: 40, h: 1, name: '케이블 매니저', kind: 'mgr' }, { u: 41, h: 1, name: '패치패널', kind: 'patch' },
-  ];
+  const PRE = [];
+
   const ZF = DEP / 2, ZR = -DEP / 2;
   const CORE_X = 8.4;
   const COLORS = { A: 0xd9654a, B: 0x4a8bd9, fiber: 0xe8c547 };
@@ -32,11 +27,11 @@
     const r = rear ? new THREE.MeshStandardMaterial({ map: rear, roughness: 0.6, metalness: 0.2 }) : sm;
     return [sm, sm, sm, sm, f, r];
   }
-  function plain(label, base, accent) {
+  function plain(label, base, accent, dark) {
     return tex(1086, 100, (g, w, h) => {
       g.fillStyle = base; g.fillRect(0, 0, w, h);
       g.fillStyle = accent; g.fillRect(0, 0, w, 3);
-      g.fillStyle = 'rgba(255,255,255,.55)'; g.font = '600 28px sans-serif'; g.textBaseline = 'middle'; g.fillText(label, 26, h / 2);
+      g.fillStyle = dark ? 'rgba(25,32,38,.75)' : 'rgba(255,255,255,.55)'; g.font = '600 28px sans-serif'; g.textBaseline = 'middle'; g.fillText(label, 26, h / 2);
     });
   }
   function srvFace(label, kind, rear) {
@@ -92,12 +87,12 @@
       opts = opts || {};
       const r = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
       r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      const scene = new THREE.Scene(); scene.background = new THREE.Color(0x12161b); scene.fog = new THREE.Fog(0x12161b, 60, 120);
+      const scene = new THREE.Scene(); scene.background = new THREE.Color(0xe8ecef); scene.fog = new THREE.Fog(0xe8ecef, 90, 160);
       const cam = new THREE.PerspectiveCamera(38, 1, 0.5, 200);
       const root3 = new THREE.Group(); scene.add(root3);
-      scene.add(new THREE.HemisphereLight(0xdfe8f2, 0x20262d, 0.95));
-      const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(12, 26, 18); scene.add(key);
-      const back = new THREE.DirectionalLight(0xffd9b0, 0.5); back.position.set(-10, 22, -20); scene.add(back);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c0c8, 1.5));
+      const key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(12, 26, 18); scene.add(key);
+      const back = new THREE.DirectionalLight(0xffffff, 0.55); back.position.set(-10, 22, -20); scene.add(back);
       Object.assign(this, { r, scene, cam, root: root3, cs: { az: 0, pol: 80, dist: 36, ty: 9, tx: 0 }, goal: null, onPickU: opts.onPickU, cables: [], sw: null, swState: { sys: 'off', up: [false, false], psuLed: false } });
       this.buildStatic();
       this.bind(canvas);
@@ -108,27 +103,27 @@
     },
     buildStatic() {
       const g = this.root;
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 50), new THREE.MeshStandardMaterial({ color: 0x1a1f25, roughness: 0.95 }));
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 50), new THREE.MeshStandardMaterial({ color: 0xd3d9de, roughness: 0.95 }));
       floor.rotation.x = -Math.PI / 2; g.add(floor);
-      const grid = new THREE.GridHelper(80, 40, 0x2c343d, 0x232a31); grid.position.y = 0.01; g.add(grid);
+      const grid = new THREE.GridHelper(80, 40, 0xaeb7bf, 0xc3cad1); grid.position.y = 0.01; g.add(grid);
       // 콜드/핫 아일 바닥 띠
       const cold = new THREE.Mesh(new THREE.PlaneGeometry(26, 6), new THREE.MeshBasicMaterial({ color: 0x2a6fb0, transparent: true, opacity: 0.16 }));
       cold.rotation.x = -Math.PI / 2; cold.position.set(CORE_X / 2, 0.02, ZF + 4.6); g.add(cold);
       const hot = new THREE.Mesh(new THREE.PlaneGeometry(26, 6), new THREE.MeshBasicMaterial({ color: 0xc8553d, transparent: true, opacity: 0.16 }));
       hot.rotation.x = -Math.PI / 2; hot.position.set(CORE_X / 2, 0.02, ZR - 4.6); g.add(hot);
-      const l1 = sprite('콜드 아일 (전면, 찬 공기 흡기)', '#7db4e6', 0.9); l1.position.set(0, 0.5, ZF + 4.6); g.add(l1);
-      const l2 = sprite('핫 아일 (후면, 더운 공기 배기)', '#e89a86', 0.9); l2.position.set(0, 0.5, ZR - 4.6); g.add(l2);
-      this.rack(0, 'R12 (이 장비를 넣을 랙)');
+      const l1 = sprite('콜드 아일 (전면, 찬 공기 흡기)', '#1f5f9e', 0.9); l1.position.set(0, 0.5, ZF + 4.6); g.add(l1);
+      const l2 = sprite('핫 아일 (후면, 더운 공기 배기)', '#a8402a', 0.9); l2.position.set(0, 0.5, ZR - 4.6); g.add(l2);
+      this.rack(0, 'R12 (빈 랙 · 여기에 설치)');
       this.rack(CORE_X, 'R01 (코어 랙)');
       // 사전 장비
       PRE.forEach(d => this.pre(d));
       // 코어
       this.coreDev('CORE-A', 41); this.coreDev('CORE-B', 38);
       // PDU
-      this.pdu('A', -2.62); this.pdu('B', 2.62);
+      this.pdu('A'); this.pdu('B');
     },
     rack(x, label) {
-      const g = this.root, m = new THREE.MeshStandardMaterial({ color: 0x4a5663, roughness: 0.5, metalness: 0.4 });
+      const g = this.root, m = new THREE.MeshStandardMaterial({ color: 0x3a444e, roughness: 0.5, metalness: 0.4 });
       const H = TOTAL_U * U + 0.7;
       [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(p => {
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, H, 0.18), m);
@@ -142,9 +137,9 @@
       }));
       // U 번호 눈금 (전면 왼쪽 기둥 옆)
       for (let u = 5; u <= 40; u += 5) {
-        const t = sprite(String(u), '#8a96a3', 0.28); t.position.set(x - W / 2 - 0.85, yOf(u), ZF + 0.12); g.add(t);
+        const t = sprite(String(u), '#55606b', 0.28); t.position.set(x - W / 2 - 0.85, yOf(u), ZF + 0.12); g.add(t);
       }
-      const t = sprite(label, '#b8c2cc', 0.62); t.position.set(x, H + 0.9, 0); g.add(t);
+      const t = sprite(label, '#2b343c', 0.62); t.position.set(x, H + 0.9, 0); g.add(t);
     },
     pre(d) {
       const box = new THREE.Mesh(new THREE.BoxGeometry(W * 0.97, d.h * U * 0.92, DEP * 0.98), faceMats(
@@ -159,23 +154,33 @@
         g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '700 30px sans-serif'; g.textBaseline = 'middle'; g.fillText(name, 30, h / 2); });
       const box = new THREE.Mesh(new THREE.BoxGeometry(W * 0.97, U * 0.92, DEP * 0.98), faceMats(f, f));
       box.position.set(CORE_X, yOf(u), 0); this.root.add(box);
-      const s = sprite(name, '#9fd8e6', 0.4); s.position.set(CORE_X, yOf(u) + 0.5, ZR - 0.25); this.root.add(s);
+      const s = sprite(name, '#14606f', 0.4); s.position.set(CORE_X, yOf(u) + 0.5, ZR - 0.25); this.root.add(s);
       (this.corePorts = this.corePorts || {})[name] = new THREE.Vector3(CORE_X + 1.5, yOf(u), ZR - 0.05);
     },
-    pdu(side, x) {
-      const g = this.root, col = COLORS[side];
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 14.6, 0.34), new THREE.MeshStandardMaterial({ color: 0x1b2026, roughness: 0.6 }));
-      body.position.set(x, 8.2, ZR + 0.45); g.add(body);
+    pdu(side) {
+      const col = COLORS[side], grp = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 14.6, 0.34), new THREE.MeshStandardMaterial({ color: 0x2a3036, roughness: 0.6 }));
+      body.position.y = 8.2; grp.add(body);
       const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.36, 14.6, 0.04), new THREE.MeshStandardMaterial({ color: col }));
-      stripe.position.set(x, 8.2, ZR + 0.28); g.add(stripe);
-      const lab = sprite('PDU-' + side, '#' + col.toString(16), 0.45); lab.position.set(x, 15.9, ZR + 0.5); g.add(lab);
-      this['pduPos' + side] = k => new THREE.Vector3(x, 1.4 + k * 1.05, ZR + 0.22);
+      stripe.position.set(0, 8.2, -0.17); grp.add(stripe);
       for (let k = 0; k < 12; k++) {
-        const o = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.06), new THREE.MeshStandardMaterial({ color: k < 7 ? 0x555e68 : 0x2c333a }));
-        o.position.copy(this['pduPos' + side](k)); g.add(o);
+        const o = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.06), new THREE.MeshStandardMaterial({ color: 0x6a737d }));
+        o.position.set(0, 1.4 + k * 1.05, -0.2); grp.add(o);
       }
-      this['pduUsed' + side] = [0, 1, 2, 3, 4, 5, 6]; // 이미 서버가 꽂힌 콘센트(가정)
+      const home = new THREE.Vector3(side === 'A' ? -6.6 : -5.0, 0, 1.6);
+      grp.position.copy(home); grp.userData = { home, side, target: null, installed: false };
+      this.root.add(grp); (this.pdus = this.pdus || {})[side] = grp; this.pduLabel(side, 'PDU-' + side + ' (대기)');
     },
+    pduLabel(side, text) {
+      const grp = this.pdus[side]; if (grp.userData.lab) grp.remove(grp.userData.lab);
+      const l = sprite(text, '#' + COLORS[side].toString(16), 0.42); l.position.set(0, 16.0, 0); grp.add(l); grp.userData.lab = l;
+    },
+    pduPos(side, k) { const g = this.pdus[side]; g.updateMatrixWorld(true); return g.localToWorld(new THREE.Vector3(0, 1.4 + k * 1.05, -0.22)); },
+    installPdu(side, lr, label) {
+      const g = this.pdus[side]; g.userData.target = new THREE.Vector3(lr === 'L' ? 2.62 : -2.62, 0, ZR + 0.45); g.userData.installed = true;
+      this.pduLabel(side, label || 'PDU-' + side);
+    },
+    resetPdus() { ['A', 'B'].forEach(k => { const g = this.pdus[k]; g.position.copy(g.userData.home); g.userData.target = null; g.userData.installed = false; this.pduLabel(k, 'PDU-' + k + ' (대기)'); }); },
     /* 스위치 장착 */
     mount(u, portFace) {
       if (this.sw) { this.root.remove(this.sw); this.sw = null; }
@@ -184,7 +189,7 @@
       grp.add(body);
       const faceMat = new THREE.MeshBasicMaterial({ map: switchFace(this.swState), transparent: false });
       const face = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.97, U * 0.92), faceMat); face.position.z = DEP * 0.31 + 0.005; grp.add(face);
-      const back = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.97, U * 0.92), new THREE.MeshBasicMaterial({ map: plain('NX-4824T  ·  흡기 (포트 반대면)', '#bfc6cd', '#e0a030') }));
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(W * 0.97, U * 0.92), new THREE.MeshBasicMaterial({ map: plain('NX-4824T  ·  흡기 (포트 반대면)', '#bfc6cd', '#e0a030', true) }));
       back.position.z = -DEP * 0.31 - 0.005; back.rotation.y = Math.PI; grp.add(back);
       grp.position.set(0, yOf(u), portFace === 'rear' ? 0 : 0);
       grp.rotation.y = portFace === 'rear' ? Math.PI : 0;
@@ -220,10 +225,10 @@
       if (!this.sw) return;
       const a = this.local(which === 1 ? PX.psu1 : PX.psu2, 56);
       const out = this.sw.userData.portFace === 'rear' ? -1 : 1;
-      const end = this['pduPos' + side](outlet);
+      const end = this.pduPos(side, outlet);
       const pts = [a, new THREE.Vector3(a.x, a.y, a.z + out * 0.7)];
       if (out > 0) { // 포트면이 앞: 전원선이 랙 옆으로 돌아 뒤로 감
-        const sx = side === 'A' ? -1 : 1;
+        const sx = Math.sign(this.pdus[side].position.x) || 1;
         pts.push(new THREE.Vector3(sx * (W / 2 + 1.0), a.y, ZF + 0.8), new THREE.Vector3(sx * (W / 2 + 1.0), a.y, 0), new THREE.Vector3(sx * (W / 2 + 0.7), end.y, ZR - 0.9));
       } else {
         pts.push(new THREE.Vector3((a.x + end.x) / 2, (a.y + end.y) / 2, ZR - 1.1));
@@ -275,12 +280,14 @@
       const P = {
         front: { az: 0, pol: 82, dist: 40, ty: 9, tx: 4 }, rear: { az: 180, pol: 82, dist: 40, ty: 9, tx: 4 },
         top: { az: 180, pol: 78, dist: 20, ty: 15.5, tx: 3 }, rearTop: { az: 190, pol: 74, dist: 24, ty: 14, tx: 4 },
+        pdu: { az: 200, pol: 80, dist: 34, ty: 9, tx: -1 },
         front_up: { az: 0, pol: 84, dist: 20, ty: 14.5, tx: 0 },
       };
       this.goal = P[name] || P.front;
     },
     tick() {
       const c = this.cs;
+      Object.values(this.pdus || {}).forEach(g => { const t = g.userData.target; if (t) { g.position.lerp(t, 0.1); if (g.position.distanceTo(t) < 0.02) { g.position.copy(t); g.userData.target = null; } } });
       if (this.goal) {
         let d = 0;
         ['az', 'pol', 'dist', 'ty', 'tx'].forEach(k => { let t = this.goal[k]; if (k === 'az') { let df = ((t - c.az + 540) % 360) - 180; t = c.az + df; } const diff = t - c[k]; c[k] += diff * 0.1; d += Math.abs(diff); });
