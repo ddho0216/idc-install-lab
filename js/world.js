@@ -50,6 +50,9 @@
     [[RD / 2 - 0.036, 0], [-RD / 2 + 0.036, Math.PI]].forEach(([z, ry]) => [-1, 1].forEach(sx => { const p = new T.Mesh(new T.PlaneGeometry(0.03, TOTALU * U), new T.MeshBasicMaterial({ map: railTex })); p.position.set(sx * (EW / 2 + 0.014), BASEY + TOTALU * U / 2, z); p.rotation.y = ry; g.add(p); }));
     const nm = G.sprite(name, '#222', 1.0, 'rgba(255,255,255,.9)'); nm.position.set(0, H + 0.14, RD / 2); g.add(nm);
     if (o.ticks) [1, 10, 20, 30, 40].forEach(u => { const s = G.sprite('U' + u, '#333', 0.32, 'rgba(255,255,255,.85)'); s.position.set(-RW / 2 - 0.1, W.yOfU(u), RD / 2); g.add(s); });
+    const doorH = H - BASEY - 0.04, dtex = W.doorTex || (W.doorTex = G.tex(128, 256, (c, w, h) => { c.fillStyle = '#262e36'; c.fillRect(0, 0, w, h); c.fillStyle = '#0d1115'; for (let yy = 6; yy < h; yy += 8) for (let xx = 6; xx < w; xx += 8) { c.beginPath(); c.arc(xx, yy, 2.2, 0, 7); c.fill(); } c.strokeStyle = '#3d4852'; c.lineWidth = 6; c.strokeRect(2, 2, w - 4, h - 4); }));
+    const mkDoor = (zf, hs, ang) => { const gr = new T.Group(); gr.position.set(hs * (RW / 2 - 0.012), BASEY + doorH / 2 + 0.02, zf); const m = new T.Mesh(new T.BoxGeometry(RW - 0.026, doorH, 0.02), new T.MeshStandardMaterial({ map: dtex, roughness: 0.6, metalness: 0.3 })); m.position.x = -hs * (RW / 2 - 0.013); m.castShadow = true; gr.add(m); const hd = box(0.014, 0.18, 0.024, 0xb0b8c0, 0.3, 0.8); hd.position.set(-hs * (RW - 0.07), 0, 0); gr.add(hd); gr.rotation.y = ang; g.add(gr); };
+    if (o.doorF) mkDoor(RD / 2 + 0.012, -1, o.doorF === 'open' ? -1.9 : 0); if (o.doorR) mkDoor(-RD / 2 + 0.012, 1, 0);
     addCol(x - RW / 2, x + RW / 2, ZC - RD / 2, ZC + RD / 2); g.userData.name = name; return g;
   };
 
@@ -58,14 +61,20 @@
   const PORT = { psu1: [135, 56], psu2: [375, 56], nic1: [640, 50], nic2: [698, 50], mgmt: [768, 50], con: [616, 52], t1: [1070, 45], t2: [1140, 45] };
   W.PORT = PORT;
   W.faceTex = {
-    serverFront(label) { return G.tex(FW, 100, (g, w, h) => { g.fillStyle = '#2b323a'; g.fillRect(0, 0, w, h); g.fillStyle = '#1b2026'; g.fillRect(0, 0, 70, h); g.fillRect(w - 70, 0, 70, h);
-      for (let i = 0; i < 4; i++) { g.fillStyle = '#10151a'; g.fillRect(110 + i * 215, 12, 195, 76); g.fillStyle = '#2e363f'; for (let k = 0; k < 6; k++) g.fillRect(122 + i * 215, 22 + k * 11, 170, 3); g.fillStyle = '#3ecf8e'; g.fillRect(290 + i * 215, 74, 10, 6); }
-      g.fillStyle = '#d9dde1'; g.fillRect(990, 22, 60, 56); g.fillStyle = '#2fbf71'; g.beginPath(); g.arc(1020, 50, 14, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '600 20px sans-serif'; g.fillText(label, 1065, 54); }); },
+    serverFront(label, serial) { return G.tex(FW, 100, (g, w, h) => {
+      const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#3c454e'); gr.addColorStop(1, '#222930'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#14191e'; g.fillRect(0, 0, 64, h); g.fillRect(w - 64, 0, 64, h); g.fillStyle = '#59626b'; [22, 78].forEach(y => { g.beginPath(); g.arc(32, y, 6, 0, 7); g.fill(); g.beginPath(); g.arc(w - 32, y, 6, 0, 7); g.fill(); });
+      for (let i = 0; i < 4; i++) { const x = 100 + i * 212; g.fillStyle = '#10151a'; g.fillRect(x, 10, 198, 80); g.fillStyle = '#2c353e'; g.fillRect(x + 4, 14, 190, 72); g.fillStyle = '#3a444e'; for (let k = 0; k < 7; k++) g.fillRect(x + 14, 22 + k * 9, 146, 3);
+        g.fillStyle = '#59626b'; g.fillRect(x + 168, 26, 20, 48); g.fillStyle = '#252c33'; g.fillRect(x + 172, 32, 12, 36); g.fillStyle = '#3ecf8e'; g.fillRect(x + 10, 78, 8, 5); g.fillStyle = i === 2 ? '#e0a030' : '#2e363f'; g.fillRect(x + 22, 78, 8, 5); g.fillStyle = '#8a96a1'; g.font = '700 11px sans-serif'; g.fillText('HDD ' + i, x + 140, 85); }
+      g.fillStyle = '#d9dde1'; g.fillRect(950, 14, 100, 72); g.fillStyle = '#3ecf8e'; g.beginPath(); g.arc(984, 46, 15, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 3; g.stroke();
+      g.fillStyle = '#2b9bd9'; g.beginPath(); g.arc(1026, 30, 5, 0, 7); g.fill(); g.fillStyle = '#e0a030'; g.beginPath(); g.arc(1026, 50, 5, 0, 7); g.fill(); g.fillStyle = '#14191e'; g.fillRect(958, 72, 24, 9); g.fillRect(990, 72, 24, 9);
+      g.fillStyle = '#f2f2ee'; g.fillRect(1058, 22, 52, 56); g.fillStyle = '#222'; g.font = '700 9px sans-serif'; g.fillText((label || '').slice(0, 11), 1061, 36); g.font = '8px sans-serif'; g.fillText('S/N', 1061, 52); g.fillText((serial || '').slice(0, 11), 1061, 63); }); },
     serverRear(st) { return G.tex(FW, 100, (g, w, h) => { g.fillStyle = '#c9d0d6'; g.fillRect(0, 0, w, h); g.fillStyle = '#e0a030'; g.fillRect(0, 0, w, 3);
       [PORT.psu1[0], PORT.psu2[0]].forEach((cx, i) => { g.fillStyle = '#aeb6be'; g.fillRect(cx - 105, 16, 210, 70); g.fillStyle = st.cord && st.cord[i] ? '#d9654a' : '#20262b'; g.fillRect(cx - 28, 34, 56, 36); g.fillStyle = '#6a737d'; g.fillRect(cx - 18, 40, 6, 14); g.fillRect(cx + 12, 40, 6, 14); led(g, cx + 70, 22, st.power && st.cord && st.cord[i], '#2fbf71'); });
       g.fillStyle = '#56606a'; g.font = '700 14px sans-serif'; g.fillText('PSU1', 40, 12); g.fillText('PSU2', 280, 12); g.fillText('NIC1', 624, 12); g.fillText('NIC2', 682, 12); g.fillText('MGMT', 750, 12);
       [PORT.nic1[0], PORT.nic2[0], PORT.mgmt[0]].forEach((cx, i) => { g.fillStyle = '#20262b'; g.fillRect(cx - 22, 30, 44, 34); g.fillStyle = '#586068'; g.fillRect(cx - 17, 34, 34, 22); led(g, cx - 8, 70, st.nic && st.nic[i], '#2fbf71'); });
-      for (let i = 0; i < 4; i++) { g.fillStyle = '#9aa3ab'; g.beginPath(); g.arc(880 + i * 60, 52, 22, 0, 7); g.fill(); g.fillStyle = '#4a525a'; g.beginPath(); g.arc(880 + i * 60, 52, 7, 0, 7); g.fill(); } }); },
+      for (let i = 0; i < 4; i++) { g.fillStyle = '#9aa3ab'; g.beginPath(); g.arc(880 + i * 60, 52, 22, 0, 7); g.fill(); g.fillStyle = '#4a525a'; g.beginPath(); g.arc(880 + i * 60, 52, 7, 0, 7); g.fill(); }
+      g.fillStyle = '#f2f2ee'; g.fillRect(490, 22, 100, 56); g.fillStyle = '#222'; g.font = '700 11px sans-serif'; g.textBaseline = 'alphabetic'; g.fillText('S/N', 496, 40); g.fillText((st.serial || '').slice(0, 12), 496, 56); g.font = '9px sans-serif'; g.fillText('MADE FOR SIM', 496, 70); }); },
     switchRear(st) { return G.tex(FW, 100, (g, w, h) => { g.fillStyle = '#d6dce2'; g.fillRect(0, 0, w, h); g.fillStyle = '#e0a030'; g.fillRect(0, 0, w, 4); g.fillStyle = '#56606a'; g.font = '700 14px sans-serif'; g.textBaseline = 'top';
       g.fillText('PSU1', 30, 6); g.fillText('PSU2', 270, 6); g.fillText('FAN', 470, 6); g.fillText('CON', 604, 80); g.fillText('GE 1-48', 660, 6); g.fillText('T1', 1062, 6); g.fillText('T2', 1132, 6);
       [PORT.psu1[0], PORT.psu2[0]].forEach((cx, i) => { g.fillStyle = '#b2bac2'; g.fillRect(cx - 105, 22, 210, 70); g.fillStyle = st.cord && st.cord[i] ? '#d9654a' : '#2a3036'; g.fillRect(cx - 28, 40, 56, 34); g.fillStyle = '#6a737d'; g.fillRect(cx - 18, 46, 6, 14); g.fillRect(cx + 12, 46, 6, 14); led(g, cx + 76, 28, st.power && st.cord && st.cord[i], '#2fbf71'); });
@@ -74,7 +83,12 @@
       for (let r = 0; r < 2; r++) for (let c = 0; c < 24; c++) { const x = 660 + c * 16.2, y = 28 + r * 31; g.fillStyle = '#20262b'; g.fillRect(x, y, 12, 22); g.fillStyle = '#4a525a'; g.fillRect(x + 2, y + 3, 8, 3); }
       [PORT.t1[0], PORT.t2[0]].forEach((cx, i) => { g.fillStyle = '#20262b'; g.fillRect(cx - 14, 30, 28, 30); g.fillStyle = '#586068'; g.fillRect(cx - 10, 34, 20, 22); g.fillStyle = st.up && st.up[i] ? '#2fbf71' : (st.upBad && st.upBad[i] ? '#d9654a' : '#4a525a'); g.fillRect(cx - 8, 66, 16, 8); });
       g.fillStyle = st.sys === 'ok' ? '#2fbf71' : st.sys === 'boot' ? '#e0a030' : '#8a929b'; g.beginPath(); g.arc(590, 20, 5, 0, 7); g.fill(); }); },
-    switchFront() { return G.tex(FW, 100, (g, w, h) => { g.fillStyle = '#bfc6cd'; g.fillRect(0, 0, w, h); g.fillStyle = '#e0a030'; g.fillRect(0, 0, w, 4); g.fillStyle = '#9aa3ab'; for (let i = 0; i < 40; i++) g.fillRect(260 + i * 18, 24, 8, 52); g.fillStyle = 'rgba(25,32,38,.75)'; g.font = '600 26px sans-serif'; g.textBaseline = 'middle'; g.fillText('NX-4824T  ·  흡기 (포트 반대면)', 30, 50); }); },
+    switchFront(serial) { return G.tex(FW, 100, (g, w, h) => {
+      const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#cdd3d9'); gr.addColorStop(1, '#aeb6be'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#e0a030'; g.fillRect(0, 0, w, 4);
+      g.fillStyle = '#8f98a1'; g.fillRect(0, 0, 64, h); g.fillRect(w - 64, 0, 64, h); g.fillStyle = '#59626b'; [24, 76].forEach(y => { g.beginPath(); g.arc(32, y, 6, 0, 7); g.fill(); g.beginPath(); g.arc(w - 32, y, 6, 0, 7); g.fill(); });
+      g.fillStyle = '#5b646d'; g.fillRect(80, 30, 70, 40); g.fillStyle = '#9aa3ab'; g.fillRect(86, 36, 58, 28); g.fillStyle = '#5b646d'; g.fillRect(w - 150, 30, 70, 40); g.fillStyle = '#9aa3ab'; g.fillRect(w - 144, 36, 58, 28);
+      g.fillStyle = '#98a1aa'; for (let r = 0; r < 3; r++) for (let i = 0; i < 40; i++) g.fillRect(200 + i * 19, 22 + r * 18, 9, 10);
+      g.fillStyle = 'rgba(25,32,38,.8)'; g.font = '700 22px sans-serif'; g.textBaseline = 'middle'; g.fillText('NX-4824T  ·  흡기면 (포트 반대면)', 200, 84); g.fillStyle = '#f2f2ee'; g.fillRect(950, 18, 150, 38); g.fillStyle = '#222'; g.font = '700 13px sans-serif'; g.fillText('S/N ' + (serial || ''), 958, 38); }); },
     fill(label, kind) { return G.tex(FW, 100, (g, w, h) => { g.fillStyle = '#2b323a'; g.fillRect(0, 0, w, h); g.fillStyle = kind === 'sw' ? '#1d242b' : '#2b323a'; g.fillRect(0, 0, w, h); if (kind === 'sw') { for (let i = 0; i < 24; i++) { g.fillStyle = '#0f1318'; g.fillRect(520 + i * 24, 30, 16, 24); g.fillStyle = i < 14 ? '#2fbf71' : '#4a525a'; g.fillRect(523 + i * 24, 58, 10, 5); } g.fillStyle = '#4fc3d9'; g.fillRect(0, 0, w, 3); } else { g.fillStyle = '#10151a'; for (let i = 0; i < 4; i++) g.fillRect(110 + i * 215, 12, 195, 76); g.fillStyle = '#3ecf8e'; g.fillRect(40, 44, 10, 8); }
       g.fillStyle = 'rgba(255,255,255,.8)'; g.font = '700 24px sans-serif'; g.textBaseline = 'middle'; g.fillText(label, 90, 50); }); },
   };
@@ -84,8 +98,8 @@
   W.makeDevice = function (type, o) {
     o = o || {}; const D = type === 'server' ? 0.62 : 0.44, H = U * 0.92, g = new T.Group();
     const body = new T.Mesh(new T.BoxGeometry(EW, H, D), mat(type === 'server' ? 0x4a525a : 0x9aa3ab, 0.55, 0.3)); body.castShadow = true; body.receiveShadow = true; g.add(body);
-    const st = { cord: [false, false], power: false, nic: [false, false, false], up: [false, false], upBad: [false, false], con: false, sys: 'off' };
-    const frontT = type === 'server' ? W.faceTex.serverFront(o.label || 'SRV-NEW-01') : W.faceTex.switchFront();
+    const st = { serial: o.serial || '', cord: [false, false], power: false, nic: [false, false, false], up: [false, false], upBad: [false, false], con: false, sys: 'off' };
+    const frontT = type === 'server' ? W.faceTex.serverFront(o.label || 'SRV-NEW-01', o.serial) : W.faceTex.switchFront(o.serial);
     const front = new T.Mesh(new T.PlaneGeometry(EW, H), new T.MeshBasicMaterial({ map: frontT })); front.position.z = D / 2 + 0.002; g.add(front);
     const rear = new T.Mesh(new T.PlaneGeometry(EW, H), new T.MeshBasicMaterial({ map: type === 'server' ? W.faceTex.serverRear(st) : W.faceTex.switchRear(st) })); rear.position.z = -D / 2 - 0.002; rear.rotation.y = Math.PI; g.add(rear);
     [-1, 1].forEach(sx => { const e = box(0.03, H, 0.006, 0x6f7983, 0.4, 0.6); e.position.set(sx * (EW / 2 + 0.015), 0, D / 2 - 0.003); g.add(e); [-0.011, 0.011].forEach(yy => { const h = new T.Mesh(new T.CylinderGeometry(0.0035, 0.0035, 0.002, 10), mat(0x20262b)); h.rotation.x = Math.PI / 2; h.position.set(sx * (EW / 2 + 0.015), yy, D / 2 + 0.001); g.add(h); }); });
@@ -137,7 +151,7 @@
     // 서버실 장식: 소화기, 쓰레기통
     const ext = box(0.12, 0.45, 0.12, 0xc8402a, 0.5); ext.position.set(-6.7, 0.25, 4.5); sc.add(ext);
     // 감독관 NPC
-    W.buildNpc();
+    W.buildNpc(); W.buildExtras();
   };
   W.buildNpc = function () {
     const g = new T.Group(); g.position.set(-2.6, 0, 3.2); G.scene.add(g); W.npc = g;
@@ -151,6 +165,19 @@
     const nm = G.sprite('감독관', '#222', 0.8, 'rgba(255,255,255,.92)'); nm.position.y = 1.98; g.add(nm);
     const hit = new T.Mesh(new T.BoxGeometry(0.7, 1.9, 0.6), new T.MeshBasicMaterial({ visible: false })); hit.position.y = 0.95; g.add(hit); W.npcHit = hit; W.npcHead = head;
     addCol(-2.9, -2.3, 2.9, 3.5);
+  };
+  W.buildExtras = function () {
+    const sc = G.scene, R = W.ROOM;
+    const clock = new T.Mesh(new T.CircleGeometry(0.22, 32), new T.MeshBasicMaterial({ map: G.tex(256, 256, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.arc(128, 128, 124, 0, 7); g.fill(); g.strokeStyle = '#222'; g.lineWidth = 8; g.stroke(); for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; g.beginPath(); g.moveTo(128 + Math.sin(a) * 104, 128 - Math.cos(a) * 104); g.lineTo(128 + Math.sin(a) * 118, 128 - Math.cos(a) * 118); g.stroke(); } g.lineWidth = 10; g.beginPath(); g.moveTo(128, 128); g.lineTo(128, 62); g.stroke(); g.lineWidth = 7; g.beginPath(); g.moveTo(128, 128); g.lineTo(186, 150); g.stroke(); }) }));
+    clock.position.set(R.x0 + 0.03, 2.4, -1.6); clock.rotation.y = Math.PI / 2; sc.add(clock);
+    const wb = new T.Mesh(new T.PlaneGeometry(1.7, 0.95), new T.MeshBasicMaterial({ map: G.tex(680, 380, (g, w, h) => { g.fillStyle = '#f8f9fa'; g.fillRect(0, 0, w, h); g.strokeStyle = '#8a949e'; g.lineWidth = 10; g.strokeRect(0, 0, w, h); g.fillStyle = '#1f5fbf'; g.font = '700 34px sans-serif'; g.fillText('오늘의 작업 · R12 랙', 28, 56); g.fillStyle = '#333'; g.font = '500 26px sans-serif'; ['09:00 입고 확인', '10:00 PDU / 레일 설치', '13:00 장비 장착·배선', '16:00 관제 연동 확인', '17:00 티켓 마감'].forEach((t, i) => g.fillText('• ' + t, 28, 110 + i * 46)); g.fillStyle = '#c23a26'; g.font = '700 24px sans-serif'; g.fillText('※ 전원은 반드시 A/B 분리', 28, 350); }) }));
+    wb.position.set(R.x1 - 0.03, 1.6, -2.4); wb.rotation.y = -Math.PI / 2; sc.add(wb);
+    const tool = new T.Group(); tool.position.set(-5.5, 0, 0.5); const tb = box(0.5, 0.22, 0.24, 0xc23a26, 0.5); tb.position.y = 0.11; tool.add(tb); const tl = box(0.5, 0.03, 0.26, 0x8a1f10, 0.5); tl.position.y = 0.235; tool.add(tl); const th = box(0.3, 0.03, 0.03, 0x2a2f36, 0.4, 0.5); th.position.y = 0.29; tool.add(th); [-0.2, 0.2].forEach(x => { const lt = box(0.04, 0.04, 0.03, 0xb0b8c0, 0.3, 0.8); lt.position.set(x, 0.2, 0.135); tool.add(lt); }); sc.add(tool);
+    const bin = new T.Mesh(new T.CylinderGeometry(0.17, 0.14, 0.42, 20), mat(0x2f6f4a, 0.7)); bin.position.set(1.3, 0.21, 6.2); bin.castShadow = true; sc.add(bin);
+    const lad = new T.Group(); lad.position.set(R.x1 - 0.25, 0, -4.6); lad.rotation.z = -0.12; [-0.2, 0.2].forEach(x => { const r = box(0.04, 2.0, 0.04, 0xd9a21e, 0.5, 0.4); r.position.set(x, 1.0, 0); lad.add(r); }); for (let i = 0; i < 7; i++) { const rg = box(0.4, 0.03, 0.04, 0xd9a21e, 0.5, 0.4); rg.position.set(0, 0.25 + i * 0.27, 0); lad.add(rg); } sc.add(lad);
+    const es = new T.Group(); es.position.set(-1.0, 1.25, R.z1 - 0.06); es.add(box(0.2, 0.2, 0.08, 0xf2c200, 0.6)); const bt = new T.Mesh(new T.CylinderGeometry(0.055, 0.055, 0.05, 16), mat(0xc23a26, 0.4)); bt.rotation.x = Math.PI / 2; bt.position.z = 0.06; es.add(bt); const el = G.sprite('비상 정지', '#222', 0.45, 'rgba(255,255,255,.9)'); el.position.y = 0.2; es.add(el); sc.add(es);
+    const perf = G.tex(64, 64, (g, w, h) => { g.fillStyle = '#9aa7b2'; g.fillRect(0, 0, w, h); g.fillStyle = '#4b5964'; for (let y = 6; y < h; y += 8) for (let x = 6; x < w; x += 8) { g.beginPath(); g.arc(x, y, 2.4, 0, 7); g.fill(); } });
+    [-0.65, 0, 0.65].forEach(x => { const t = new T.Mesh(new T.PlaneGeometry(0.58, 0.58), new T.MeshStandardMaterial({ map: perf, roughness: 0.8 })); t.rotation.x = -Math.PI / 2; t.position.set(x, 0.007, -1.85); t.receiveShadow = true; sc.add(t); });
   };
   W.npcLook = function () { const n = W.npc; if (!n) return; const a = Math.atan2(G.pos.x - n.position.x, G.pos.z - n.position.z); n.rotation.y += (((a - n.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * 0.06; };
 })();

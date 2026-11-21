@@ -64,7 +64,7 @@ const OUT = process.env.OUT || '/tmp/play-';
   await useAt(bp[0], bp[1], bp[2], [0.1, -1.7]); await wait(500); await shot('7-boot');
   // 감독관 검수
   console.log('final:', JSON.stringify(await p.evaluate(() => __g.inspectList().map(x => x.id + ':' + x.state))));
-  await p.evaluate(() => { __g.pos.set(-2.6, 0, 2.2); __g.lookAt(new THREE.Vector3(-2.6, 1.0, 3.2)); }); await wait(200); await p.evaluate(() => __g.primary()); await wait(300); await p.click('[data-a=inspect]'); await wait(500); await shot('8-inspect');
+  await p.evaluate(() => { __g.pos.set(-2.6, 0, 2.2); __g.lookAt(new THREE.Vector3(-2.6, 1.0, 3.2)); }); await wait(200); console.log('npc focus', await p.evaluate(() => JSON.stringify({ f: __g.focus && (__g.focus.obj.userData.use ? 'use:' + (typeof __g.focus.obj.userData.use.prompt === 'function' ? __g.focus.obj.userData.use.prompt() : __g.focus.obj.userData.use.prompt) : 'other'), hold: !!__g.hold, modal: __g.modal, pos: [__g.pos.x, __g.pos.z] }))); await p.evaluate(() => __g.primary()); await wait(300); await p.click('[data-a=inspect]'); await wait(500); await shot('8-inspect');
   console.log('errors', errs);
   await b.close();
 })().catch(e => { console.error('FAIL', e.message); process.exit(1); });

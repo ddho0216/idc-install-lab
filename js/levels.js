@@ -30,16 +30,16 @@
   G.startLevel = function (n) {
     Object.assign(S, { n, lv: LV[n], t0: Date.now(), fails: 0, hints: 0, insp: 0, done: false, recvSubmitted: false, boxOpen: false, rails: null, devMount: null, flags: {}, console: false, conn: [], cords: {}, pdus: {}, occ: {}, mon: { reg: false, ok: false }, cliLog: [], hist: [], hi: 0 });
     S.scen = pick(['clean', 'serial', 'missing', 'damaged']); S.polBad = pick([[true, false], [false, true], [false, false]]); G.flip = Math.random() < 0.5;
-    W.buildRoom(); Object.keys(W.RACKX).forEach(k => W.makeRack(k, W.RACKX[k], { ticks: k === 'R12' })); W.buildProps();
+    W.buildRoom(); Object.keys(W.RACKX).forEach(k => W.makeRack(k, W.RACKX[k], { ticks: k === 'R12', doorF: k === 'R12' || k === 'R01' ? 'open' : 'closed', doorR: k === 'R12' || k === 'R01' ? null : 'closed' })); W.buildProps();
     buildRackSlot(); buildBox(); buildTableStuff(); buildDecor();
     if (n === 1) buildCart(); else { buildPreinstalled(); }
     G.addUse(W.npcHit, { prompt: '감독관과 이야기', run: supervisorMenu });
-    G.onTab = showOrder; G.onHelp = showHelp; G.onFrame = frame;
+    G.onTab = showOrder; G.onHelp = showHelp; G.onFrame = frame; G.onGuide = () => { S.guideMin = !S.guideMin; S.gsig = ''; };
     $('#lvname').textContent = S.lv.name; $('#hud').hidden = false; $('#start').hidden = true; G.running = true;
     G.pos.set(0, 0, 5.3); G.yaw = 0; G.pitch = -0.05;
     intro();
   };
-  function frame() { W.npcLook(); const ms = Date.now() - S.t0, m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60; if (!S.done) $('#timer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'); $('#mis').textContent = '검수 불합격 ' + S.fails; }
+  function frame() { W.npcLook(); const ms = Date.now() - S.t0, m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60; if (!S.done) $('#timer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'); $('#mis').textContent = '검수 불합격 ' + S.fails; if (!S.gt || ms - S.gt > 250) { S.gt = ms; renderGuide(); } }
 
   /* ================= 월드 구성 ================= */
   function buildRackSlot() {
@@ -58,12 +58,14 @@
     const mk = (zh, sg) => { const gr = new T.Group(); gr.position.set(0, BH, zh); const f = box(BW, 0.008, BD / 2, 0xb78a4d, 0.9); f.position.z = -sg * BD / 4; gr.add(f); g.add(gr); return gr; };
     const fr = mk(BD / 2, 1), bk = mk(-BD / 2, -1), tape = box(BW + 0.005, 0.003, 0.06, 0xe6d3a4, 0.5); tape.position.set(0, BH + 0.008, 0); g.add(tape);
     const pr = new T.Mesh(new T.PlaneGeometry(BW - 0.1, 0.13), new T.MeshBasicMaterial({ transparent: true, map: G.tex(512, 66, (c, w, h) => { c.fillStyle = '#5a3d17'; c.font = '700 30px sans-serif'; c.fillText(S.n === 1 ? 'SERVER 1U · THIS SIDE UP ↑' : 'SWITCH 48P · THIS SIDE UP ↑', 12, 30); c.font = '600 20px sans-serif'; c.fillText('FRAGILE · 취급주의 (가상)', 12, 58); }) })); pr.position.set(0, BH / 2, BD / 2 + 0.008); g.add(pr);
+    const bs0 = S.scen === 'serial' ? 'FOC2547A18Q' : S.lv.serial;
+    const sl = new T.Mesh(new T.PlaneGeometry(0.3, 0.16), new T.MeshBasicMaterial({ map: G.tex(300, 160, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.strokeStyle = '#222'; c.lineWidth = 3; c.strokeRect(2, 2, w - 4, h - 4); c.fillStyle = '#222'; c.font = '700 20px sans-serif'; c.fillText(S.n === 1 ? 'RX-1U420' : 'NX-4824T', 12, 30); c.font = '700 22px monospace'; c.fillText('S/N ' + bs0, 12, 62); for (let i = 0; i < 46; i++) c.fillRect(12 + i * 6, 80, (i % 3) + 1.5, 56); c.font = '12px sans-serif'; c.fillText('QTY 1 · MADE FOR SIM', 12, 152); }) })); sl.position.set(BW / 2 - 0.2, BH / 2 - 0.02, BD / 2 + 0.009); g.add(sl);
     const hit = new T.Mesh(new T.BoxGeometry(BW, BH + 0.1, BD), new T.MeshBasicMaterial({ visible: false })); hit.position.y = BH / 2; g.add(hit);
     S.box = { g, fr, bk, tape, hit, open: false, BH };
     G.addUse(hit, { prompt: () => S.box.open ? '(이미 열었습니다)' : '박스 개봉', run: openBox });
     // 내용물
     const base = g.position, top = 0.8 + 0.1;
-    const dev = W.makeDevice(S.lv.device, { label: 'SRV-NEW-01' }); const hd = S.n === 1 ? 0.62 : 0.44;
+    const boxSerial = S.scen === 'serial' ? 'FOC2547A18Q' : S.lv.serial; const dev = W.makeDevice(S.lv.device, { label: S.lv.dev, serial: boxSerial }); const hd = S.n === 1 ? 0.62 : 0.44;
     dev.g.position.set(base.x - 0.22, top + dev.H / 2 + 0.005, base.z); dev.g.rotation.y = Math.PI / 2;
     const bag = new T.Mesh(new T.BoxGeometry(EW + 0.04, dev.H + 0.02, dev.D + 0.04), new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, roughness: 0.15, depthWrite: false })); dev.g.add(bag);
     S.dev = dev; S.bag = bag;
@@ -394,6 +396,30 @@
     UI.open('<h2>작업 완료!</h2><p class="sub">' + S.lv.name + '</p><div class="stars">' + '★'.repeat(stars) + '☆'.repeat(3 - stars) + '</div><div class="score"><div>점수<b>' + score + '</b></div><div>걸린 시간<b>' + t + '</b></div><div>검수 불합격<b>' + S.fails + '</b></div></div><h3>작업 기록 (복사해서 노션에 붙여 넣으세요)</h3><pre class="term" id="rep" style="height:auto;white-space:pre-wrap">' + esc(rep) + '</pre><div class="row"><button class="btn" data-a="copy">기록 복사</button>' + (S.n === 1 ? '<button class="btn" data-a="next">2레벨로</button>' : '') + '<button class="btn ghost" data-a="again">다시 하기</button><button class="btn ghost" data-a="menu">메뉴</button></div>', { noEsc: true });
     UI.act.copy = () => { (navigator.clipboard ? navigator.clipboard.writeText(rep) : Promise.reject()).then(() => G.toast('복사했습니다.', 'ok'), () => { const r = document.createRange(); r.selectNodeContents($('#rep')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }); };
     UI.act.next = () => { location.hash = '#2'; location.reload(); }; UI.act.again = () => { location.hash = '#' + S.n; location.reload(); }; UI.act.menu = () => { location.hash = ''; location.reload(); };
+  }
+  /* ================= 왼쪽 아래 안내판 ================= */
+  function guideSteps() {
+    const n = S.n, cs = Object.keys(S.cords).length, pd = S.pdus, hasL = pd.L && pd.R, th = hasL && [pd.L, pd.R].every(p => p.warn >= 0 && p.crit >= 0);
+    const c = [
+      { t: '박스 열기', how: '작업대의 갈색 박스를 바라보고 [E]. 테이프를 뜯고 뚜껑이 열립니다.', done: S.box.open },
+      { t: '입고서 대조', how: '박스 앞면의 <b>S/N 라벨</b>과 작업대 <b>클립보드</b>의 입고서를 비교합니다. 다른 줄만 "이상"으로 바꿔 제출하세요.', done: S.recvSubmitted },
+    ];
+    if (n === 1) c.push({ t: 'PDU 설치', how: '태블릿으로 전류를 계산 → 보관대(왼쪽 안쪽)에서 PDU를 집고([E]) → 랙 <b>뒤쪽</b> 좌/우 세로 자리를 바라보고 클릭. 한쪽이 꺼졌을 때 기준으로 정격을 고르세요.', done: !!hasL }, { t: 'PDU 경보값', how: '랙 뒤쪽 PDU 위의 LCD를 바라보고 [E] → 경고·위험 전류 입력 후 저장.', done: !!th });
+    c.push({ t: '레일 킷', how: '작업대의 레일 킷을 집고 → 랙 <b>앞면</b>에서 달 U 칸을 바라보고 클릭. 초록=가능, 빨강=불가.', done: !!S.rails });
+    c.push({ t: n === 1 ? '서버 장착' : '스위치 장착(TOR)', how: '장비를 집고 [R]로 방향을 정합니다(뒷면=포트·전원이 랙 안쪽으로 먼저). 레일을 단 U 칸을 바라보고 클릭.' + (n === 2 ? ' 스위치는 랙 맨 위쪽(U38~41).' : ' 서버는 아래쪽부터.'), done: !!S.devMount });
+    c.push({ t: '전원 A/B', how: '전원 코드를 집고 → 장비 뒷면 <b>PSU 입구</b> 클릭 → PDU <b>콘센트</b> 클릭. 2개를 서로 다른 PDU(A/B)에.', done: cs >= 2 });
+    if (n === 1) c.push({ t: '네트워크', how: 'UTP를 집고 → 서버 뒷면 NIC1 클릭 → 옆 랙(R01) 뒷면의 SW-ACC-01 빈 포트 클릭.', done: !!S.net }, { t: '전원 켜기', how: '서버 <b>앞면</b> 오른쪽 전원 버튼을 바라보고 [E].', done: !!S.booted });
+    else { const f = S.fiber; c.push({ t: '광 업링크', how: '광 케이블 2개: T1 → CORE-A, T2 → CORE-B (R01 뒷면). 링크 LED가 꺼지면 코어 쪽 끝에서 [E]로 Tx/Rx를 뒤집고, 장비 쪽 끝에서 [E]로 라벨을 붙입니다.', done: !!(f[1].core && f[2].core && !f[1].wrong && !f[2].wrong && f[1].label && f[2].label) }, { t: '콘솔 설정', how: '콘솔 케이블: 스위치 CON ↔ 노트북 연결 → 노트북 [E]로 터미널 → 작업지시서대로 설정하고 write memory.', done: !!(S.cli && S.cli.tasks().every(t => t.ok)) }, { t: '관제 등록', how: '관제 PC(오른쪽 책상) [E] → 등록 → 검증 실행.', done: !!S.mon.ok }); }
+    c.push({ t: '검수 요청', how: '다 됐다고 생각되면 감독관에게 [E]로 검수를 요청하세요.', done: S.done });
+    return c;
+  }
+  function renderGuide() {
+    const el = $('#guide'); if (!el) return; const st = guideSteps(), cur = st.findIndex(x => !x.done), h = G.hold;
+    let tip = '';
+    if (h) { const T2 = { rails: '랙 앞면에서 레일을 달 U 칸을 바라보고 클릭하세요.', device: '랙 앞면의 레일 칸을 바라보고 클릭. <b>[R]</b>로 방향을 바꿉니다 (현재 ' + (G.flip ? '앞면부터' : '뒷면부터') + ').', pdu: '랙 뒤쪽 좌(A)/우(B) 세로 자리를 바라보고 클릭하세요.' };
+      if (h.type === 'cable') { const k = h.cable.kind; tip = h.pending ? '한쪽을 꽂았습니다. <b>반대쪽 끝</b>을 꽂을 곳을 바라보고 클릭하세요.' : ({ power: '한쪽은 장비 뒷면 <b>PSU 입구</b>, 반대쪽은 <b>PDU 콘센트</b>. 초록으로 빛나는 곳이 꽂을 수 있는 곳입니다.', net: '서버 <b>NIC1</b> ↔ R01의 SW-ACC-01 빈 포트.', fiber: '스위치 <b>T1/T2</b> ↔ R01 코어 포트. 서로 다른 코어에.', console: '스위치 <b>CON</b> 포트에 꽂습니다 (노트북 연결).' })[k]; } else tip = T2[h.type] || ''; }
+    const sig = [S.guideMin, cur, st.map(x => +x.done).join(''), tip, G.flip].join('|'); if (sig === S.gsig) return; S.gsig = sig;
+    el.innerHTML = '<div class="gh"><b>하는 방법</b><span>[G] ' + (S.guideMin ? '펼치기' : '접기') + '</span></div>' + (S.guideMin ? '' : '<div class="gk"><kbd>W A S D</kbd>이동 <kbd>마우스</kbd>시점 <kbd>E</kbd>/클릭 집기·사용 <kbd>R</kbd>방향 <kbd>Q</kbd>내려놓기 <kbd>Tab</kbd>지시서</div><ol class="gs">' + st.map((x, i) => '<li class="' + (x.done ? 'done' : i === cur ? 'cur' : '') + '"><span class="n">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + x.t + '</b>' + (i === cur ? '<small>' + x.how + '</small>' : '') + '</div></li>').join('') + '</ol>' + (tip ? '<div class="gt">' + tip + '</div>' : ''));
   }
   G.inspectList = inspectList; G.S2 = S;
 })();

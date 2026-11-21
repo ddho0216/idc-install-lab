@@ -60,6 +60,7 @@
       else if (e.code === 'KeyR') G.flipHeld();
       else if (e.code === 'Tab') { e.preventDefault(); G.onTab && G.onTab(); }
       else if (e.code === 'KeyH') G.onHelp && G.onHelp();
+      else if (e.code === 'KeyG') G.onGuide && G.onGuide();
     });
     document.addEventListener('keyup', e => { G.keys[e.code] = false; });
     window.addEventListener('blur', () => { G.keys = {}; });
