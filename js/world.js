@@ -15,9 +15,9 @@
     const floor = new T.Mesh(new T.PlaneGeometry(w, d), new T.MeshStandardMaterial({ map: ft, roughness: 0.85 })); floor.rotation.x = -Math.PI / 2; floor.position.set((R.x0 + R.x1) / 2, 0, (R.z0 + R.z1) / 2); floor.receiveShadow = true; sc.add(floor); G.floor = floor;
     // 콜드/핫 아일 바닥 표시
     const decal = (z0, z1, color, x0, x1) => { const m = new T.Mesh(new T.PlaneGeometry(x1 - x0, z1 - z0), new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0.004, (z0 + z1) / 2); sc.add(m); };
-    decal(-2.4, 1.2, 0x2a78c8, -2.2, 2.2); decal(-5.4, -3.6, 0xc8553d, -2.2, 2.2);
+    W.buildAisles();
     const lab = (t, c, x, z) => { const s = G.sprite(t, c, 2.3); s.material.depthWrite = false; const m = new T.Mesh(new T.PlaneGeometry(1.4, 0.26), new T.MeshBasicMaterial({ map: s.material.map, transparent: true, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.006, z); sc.add(m); };
-    lab('콜드 아일 (전면 · 찬 공기)', '#1f5f9e', 0, -1.7); lab('핫 아일 (후면 · 더운 공기)', '#a8402a', 0, -4.7);
+    
     // 안전선
     [[-2.6, -2.6, 0.02, 4.2], [2.6, 2.6, 0.02, 4.2]].forEach(l => { const m = new T.Mesh(new T.PlaneGeometry(0.06, l[3] - l[2]), new T.MeshBasicMaterial({ color: 0xf2c200 })); m.rotation.x = -Math.PI / 2; m.position.set(l[0], 0.005, (l[2] + l[3]) / 2); sc.add(m); });
     // 벽·천장
@@ -42,7 +42,7 @@
   /* ---------- 랙 ---------- */
   const railTex = G.tex(32, TOTALU * 16, (g, w, h) => { g.fillStyle = '#8a949e'; g.fillRect(0, 0, w, h); for (let u = 1; u <= TOTALU; u++) { const y = h - u * 16; g.fillStyle = '#2a3138'; [3, 7, 11].forEach(k => g.fillRect(12, y + k, 8, 2)); g.fillStyle = '#5b6670'; g.fillRect(0, y, w, 1); } });
   W.makeRack = function (name, x, o) {
-    o = o || {}; const g = new T.Group(); g.position.set(x, 0, ZC); G.scene.add(g);
+    o = o || {}; const zc = o.z != null ? o.z : ZC, g = new T.Group(); g.position.set(x, 0, zc); if (o.flip) g.rotation.y = Math.PI; G.scene.add(g);
     const H = BASEY + TOTALU * U + 0.04, post = mat(0x3d4852, 0.5, 0.4);
     const bs = box(RW, BASEY, RD, 0x252b31); bs.position.y = BASEY / 2; g.add(bs); const tp = box(RW, 0.04, RD, 0x252b31); tp.position.y = H - 0.02; g.add(tp);
     [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(p => { const m = new T.Mesh(new T.BoxGeometry(0.035, H - BASEY - 0.04, 0.035), post); m.castShadow = true; m.position.set(p[0] * (RW / 2 - 0.02), BASEY + (H - BASEY - 0.04) / 2, p[1] * (RD / 2 - 0.02)); g.add(m); });
@@ -53,7 +53,7 @@
     const doorH = H - BASEY - 0.04, dtex = W.doorTex || (W.doorTex = G.tex(128, 256, (c, w, h) => { c.fillStyle = '#262e36'; c.fillRect(0, 0, w, h); c.fillStyle = '#0d1115'; for (let yy = 6; yy < h; yy += 8) for (let xx = 6; xx < w; xx += 8) { c.beginPath(); c.arc(xx, yy, 2.2, 0, 7); c.fill(); } c.strokeStyle = '#3d4852'; c.lineWidth = 6; c.strokeRect(2, 2, w - 4, h - 4); }));
     const mkDoor = (zf, hs, ang) => { const gr = new T.Group(); gr.position.set(hs * (RW / 2 - 0.012), BASEY + doorH / 2 + 0.02, zf); const m = new T.Mesh(new T.BoxGeometry(RW - 0.026, doorH, 0.02), new T.MeshStandardMaterial({ map: dtex, roughness: 0.6, metalness: 0.3 })); m.position.x = -hs * (RW / 2 - 0.013); m.castShadow = true; gr.add(m); const hd = box(0.014, 0.18, 0.024, 0xb0b8c0, 0.3, 0.8); hd.position.set(-hs * (RW - 0.07), 0, 0); gr.add(hd); gr.rotation.y = ang; g.add(gr); return gr; };
     if (o.doorF) { const fd = mkDoor(RD / 2 + 0.012, -1, o.doorF === 'open' ? -1.9 : 0); (W.doors = W.doors || {})[name] = { grp: fd, open: o.doorF === 'open', x }; } if (o.doorR) mkDoor(-RD / 2 + 0.012, 1, 0);
-    addCol(x - RW / 2, x + RW / 2, ZC - RD / 2, ZC + RD / 2); g.userData.name = name; return g;
+    addCol(x - RW / 2, x + RW / 2, zc - RD / 2, zc + RD / 2); g.userData.name = name; return g;
   };
 
   /* ---------- 장비 얼굴 텍스처 ---------- */
@@ -177,7 +177,45 @@
     const lad = new T.Group(); lad.position.set(R.x1 - 0.25, 0, -4.6); lad.rotation.z = -0.12; [-0.2, 0.2].forEach(x => { const r = box(0.04, 2.0, 0.04, 0xd9a21e, 0.5, 0.4); r.position.set(x, 1.0, 0); lad.add(r); }); for (let i = 0; i < 7; i++) { const rg = box(0.4, 0.03, 0.04, 0xd9a21e, 0.5, 0.4); rg.position.set(0, 0.25 + i * 0.27, 0); lad.add(rg); } sc.add(lad);
     const es = new T.Group(); es.position.set(-1.0, 1.25, R.z1 - 0.06); es.add(box(0.2, 0.2, 0.08, 0xf2c200, 0.6)); const bt = new T.Mesh(new T.CylinderGeometry(0.055, 0.055, 0.05, 16), mat(0xc23a26, 0.4)); bt.rotation.x = Math.PI / 2; bt.position.z = 0.06; es.add(bt); const el = G.sprite('비상 정지', '#222', 0.45, 'rgba(255,255,255,.9)'); el.position.y = 0.2; es.add(el); sc.add(es);
     const perf = G.tex(64, 64, (g, w, h) => { g.fillStyle = '#9aa7b2'; g.fillRect(0, 0, w, h); g.fillStyle = '#4b5964'; for (let y = 6; y < h; y += 8) for (let x = 6; x < w; x += 8) { g.beginPath(); g.arc(x, y, 2.4, 0, 7); g.fill(); } });
-    [-0.65, 0, 0.65].forEach(x => { const t = new T.Mesh(new T.PlaneGeometry(0.58, 0.58), new T.MeshStandardMaterial({ map: perf, roughness: 0.8 })); t.rotation.x = -Math.PI / 2; t.position.set(x, 0.007, -1.85); t.receiveShadow = true; sc.add(t); });
+  };
+  /* ---------- 콜드 아일 / 핫 아일 (마주 보는 랙 두 줄) ---------- */
+  W.ROWB_Z = -0.2;
+  W.buildAisles = function () {
+    const sc = G.scene, mk = (w, h, d, c, o) => { const m = new T.Mesh(new T.BoxGeometry(w, h, d), new T.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.2, transparent: o != null, opacity: o == null ? 1 : o, depthWrite: o == null })); sc.add(m); return m; };
+    const area = (x0, x1, z0, z1, c, op) => { const m = new T.Mesh(new T.PlaneGeometry(x1 - x0, z1 - z0), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: op, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0.004, (z0 + z1) / 2); sc.add(m); };
+    area(-1.95, 1.95, -2.5, -0.7, 0x2a78c8, 0.2); area(-1.95, 1.95, -5.55, -3.5, 0xc8553d, 0.18); area(-1.95, 1.95, 0.3, 2.4, 0xc8553d, 0.18);
+    const perf = G.tex(64, 64, (g, w, h) => { g.fillStyle = '#8fa6bb'; g.fillRect(0, 0, w, h); g.fillStyle = '#31475c'; for (let y = 6; y < h; y += 8) for (let x = 6; x < w; x += 8) { g.beginPath(); g.arc(x, y, 2.6, 0, 7); g.fill(); } g.strokeStyle = '#6c8399'; g.lineWidth = 3; g.strokeRect(1, 1, w - 2, h - 2); });
+    [-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].forEach(x => [-2.2, -1.6, -1.0].forEach(z => { const t = new T.Mesh(new T.PlaneGeometry(0.58, 0.58), new T.MeshStandardMaterial({ map: perf, roughness: 0.8 })); t.rotation.x = -Math.PI / 2; t.position.set(x, 0.007, z); t.receiveShadow = true; sc.add(t); }));
+    const floorText = (l1, l2, c, x, z, ry) => { const t = G.tex(1024, 200, (g, w, h) => { g.fillStyle = c; g.font = '700 84px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(l1, w / 2, 70); g.font = '600 46px sans-serif'; g.fillText(l2, w / 2, 148); }); const m = new T.Mesh(new T.PlaneGeometry(2.8, 0.55), new T.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.rotation.z = ry || 0; m.position.set(x, 0.009, z); sc.add(m); };
+    floorText('COLD AISLE · 콜드 아일', '찬 공기 18~27℃ · 장비 앞면으로 흡기', '#1f5f9e', 0, -1.6, 0); floorText('HOT AISLE · 핫 아일', '더운 공기 약 35℃ · 장비 뒷면으로 배기', '#a8402a', 0, -4.6, 0); floorText('HOT AISLE · 핫 아일', '더운 공기 약 35℃', '#a8402a', 0, 1.35, 0);
+    // 콜드 아일 봉쇄: 지붕 + 양옆 패널 + 출입문 틀
+    const roof = mk(3.7, 0.03, 1.9, 0x9fc9ea, 0.28); roof.position.set(0, 2.36, -1.6);
+    [[-2.5, 0], [-0.7, 0]].forEach(p => { const sp = mk(3.4, 0.24, 0.02, 0x9fc9ea, 0.3); sp.position.set(0, 2.24, p[0]); });
+    [[-1.84, 0], [1.84, 0]].forEach(p => { const x = p[0]; [-2.45, -0.75].forEach(z => { const po = mk(0.07, 2.36, 0.07, 0x5b6670); po.position.set(x, 1.18, z); }); const hd = mk(0.07, 0.07, 1.77, 0x5b6670); hd.position.set(x, 2.34, -1.6);
+      const lf = mk(0.03, 2.1, 0.45, 0x9fc9ea, 0.3); lf.position.set(x, 1.1, -2.25); const lf2 = mk(0.03, 2.1, 0.45, 0x9fc9ea, 0.3); lf2.position.set(x, 1.1, -0.95);
+      const sg = G.sprite('콜드 아일 출입구', '#1f5f9e', 0.9, 'rgba(255,255,255,.95)'); sg.position.set(x, 2.58, -1.6); sc.add(sg); });
+    // 핫 아일: 천장 환기구(회수) + 덕트 + 비닐 커튼
+    [[-4.5, 1.6], [1.35, 1.7]].forEach(p => { const gr = new T.Mesh(new T.BoxGeometry(3.2, 0.05, p[1]), new T.MeshStandardMaterial({ map: G.tex(128, 64, (g, w, h) => { g.fillStyle = '#7b3a2d'; g.fillRect(0, 0, w, h); g.fillStyle = '#c8553d'; for (let i = 0; i < 12; i++) g.fillRect(4 + i * 10.4, 5, 6, h - 10); }), roughness: 0.6 })); gr.position.set(0, 3.12, p[0]); sc.add(gr);
+      const lb = G.sprite('환기구 · 더운 공기 회수', '#a8402a', 0.9, 'rgba(255,255,255,.95)'); lb.position.set(0, 2.85, p[0]); sc.add(lb); });
+    const duct = mk(2.6, 0.32, 0.55, 0xb9654f); duct.position.set(2.9, 3.0, -4.7);
+    [-1.97, 1.97].forEach(x => [[-5.5, -3.55], [0.35, 2.35]].forEach(zr => { for (let z = zr[0] + 0.08; z < zr[1]; z += 0.15) { const st = mk(0.1, 1.8, 0.012, 0xe9eef2, 0.35); st.position.set(x, 1.3, z); } }));
+    // 냉각 장치 (CRAH)
+    const crah = new T.Group(); crah.position.set(4.2, 0, -5.05); const cb = mk(0.95, 2.0, 0.7, 0xdfe5ea); cb.position.y = 1.0; crah.add(cb);
+    const cg = new T.Mesh(new T.PlaneGeometry(0.8, 1.2), new T.MeshBasicMaterial({ map: G.tex(128, 192, (g, w, h) => { g.fillStyle = '#c9d3db'; g.fillRect(0, 0, w, h); g.fillStyle = '#6b7a87'; for (let y = 8; y < h; y += 10) g.fillRect(8, y, w - 16, 4); }) })); cg.position.set(0, 1.05, 0.36); crah.add(cg);
+    const cl = G.sprite('CRAH-01 (냉각 장치)', '#14606f', 0.85, 'rgba(255,255,255,.95)'); cl.position.set(0, 2.3, 0.2); crah.add(cl); sc.add(crah); sc.children.forEach(() => {}); addCol(3.7, 4.7, -5.5, -4.7);
+    // 온도 표시판
+    W.tempTex = {}; const panel = (key, x, y, z, ry, label, c) => { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; const tx = new T.CanvasTexture(cv); W.tempTex[key] = { cv, tx, label, c }; const m = new T.Mesh(new T.PlaneGeometry(0.34, 0.17), new T.MeshBasicMaterial({ map: tx })); m.position.set(x, y, z); m.rotation.y = ry; sc.add(m); };
+    panel('cold', -1.78, 1.5, -1.6, Math.PI / 2, 'COLD', '#7fd0ff'); panel('hot', -1.95, 1.5, -4.5, Math.PI / 2, 'HOT', '#ff9a7a'); W.setTemps(22, 35);
+    // 공기 흐름 화살표 (애니메이션)
+    W.air = []; const cone = (c) => new T.Mesh(new T.ConeGeometry(0.028, 0.1, 8), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85 }));
+    const add = (c, a, b, ph, sp) => { const m = cone(c); sc.add(m); const d = b.clone().sub(a).normalize(); m.quaternion.setFromUnitVectors(V3(0, 1, 0), d); W.air.push({ m, a, b, ph, sp: sp || 0.35 }); };
+    for (let i = 0; i < 6; i++) { const x = -1.5 + i * 0.6; add(0x2a9bff, V3(x, 0.08, -1.6), V3(x, 1.9, -1.6), i / 6, 0.3); }
+    for (let i = 0; i < 5; i++) { const x = -1.2 + i * 0.6; add(0x2a9bff, V3(x, 0.95, -1.6), V3(x, 0.95, -2.42), i / 5 + 0.1, 0.4); add(0x2a9bff, V3(x, 1.5, -1.6), V3(x, 1.5, -0.78), i / 5 + 0.3, 0.4); }
+    for (let i = 0; i < 5; i++) { const x = -1.2 + i * 0.6; add(0xff5a3c, V3(x, 0.95, -3.55), V3(x, 0.95, -4.35), i / 5, 0.4); add(0xff5a3c, V3(x, 1.7, -4.4), V3(x, 3.0, -4.4), i / 5 + 0.2, 0.3); add(0xff5a3c, V3(x, 1.5, 0.35), V3(x, 1.5, 1.2), i / 5 + 0.4, 0.4); add(0xff5a3c, V3(x, 1.8, 1.3), V3(x, 3.0, 1.3), i / 5 + 0.6, 0.3); }
+  };
+  W.animAir = function (t) { (W.air || []).forEach(a => { const k = (t * a.sp + a.ph) % 1; a.m.position.lerpVectors(a.a, a.b, k); a.m.material.opacity = 0.7 * Math.sin(Math.PI * k); }); };
+  W.setTemps = function (cold, hot) {
+    W.temps = { cold, hot }; Object.keys(W.tempTex || {}).forEach(k => { const o = W.tempTex[k], g = o.cv.getContext('2d'), v = k === 'cold' ? cold : hot; g.fillStyle = '#0d1418'; g.fillRect(0, 0, 256, 128); g.strokeStyle = '#3a4650'; g.lineWidth = 6; g.strokeRect(3, 3, 250, 122); g.fillStyle = o.c; g.font = '700 30px sans-serif'; g.textAlign = 'left'; g.fillText(o.label + ' AISLE', 16, 40); g.font = '700 58px monospace'; g.fillStyle = (k === 'cold' && v > 27) ? '#ff6b57' : '#e9fff2'; g.fillText(v.toFixed(1) + '℃', 16, 100); o.tx.needsUpdate = true; });
   };
   W.npcLook = function () { const n = W.npc; if (!n) return; const a = Math.atan2(G.pos.x - n.position.x, G.pos.z - n.position.z); n.rotation.y += (((a - n.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * 0.06; };
 })();

@@ -30,7 +30,7 @@
   G.startLevel = function (n) {
     Object.assign(S, { n, lv: LV[n], t0: Date.now(), fails: 0, hints: 0, insp: 0, done: false, recvSubmitted: false, boxOpen: false, rails: null, devMount: null, flags: {}, console: false, conn: [], cords: {}, pdus: {}, occ: {}, mon: { reg: false, ok: false }, cliLog: [], hist: [], hi: 0 });
     S.scen = pick(['clean', 'serial', 'missing', 'damaged']); S.polBad = pick([[true, false], [false, true], [false, false]]); G.flip = Math.random() < 0.5;
-    W.buildRoom(); Object.keys(W.RACKX).forEach(k => W.makeRack(k, W.RACKX[k], { ticks: k === 'R12', doorF: k === 'R12' || k === 'R01' ? 'open' : 'closed', doorR: k === 'R12' || k === 'R01' ? null : 'closed' })); W.buildProps();
+    W.buildRoom(); Object.keys(W.RACKX).forEach(k => W.makeRack(k, W.RACKX[k], { ticks: k === 'R12', doorF: k === 'R12' || k === 'R01' ? 'open' : 'closed', doorR: k === 'R12' || k === 'R01' ? null : 'closed' })); W.buildProps(); buildRowB();
     buildRackSlot(); buildBox(); buildTableStuff(); buildDecor();
     if (n === 1) buildCart(); else { buildPreinstalled(); }
     buildInteractives(); renderQuick();
@@ -40,7 +40,7 @@
     G.pos.set(0, 0, 5.3); G.yaw = 0; G.pitch = -0.05;
     intro();
   };
-  function frame() { W.npcLook(); const ms = Date.now() - S.t0, m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60; if (!S.done) $('#timer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'); $('#mis').textContent = '검수 불합격 ' + S.fails; if (!S.gt || ms - S.gt > 250) { S.gt = ms; renderGuide(); } }
+  function frame() { W.npcLook(); const ms = Date.now() - S.t0, m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60; if (!S.done) $('#timer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'); $('#mis').textContent = '검수 불합격 ' + S.fails; if (!S.gt || ms - S.gt > 250) { S.gt = ms; renderGuide(); } if (W.animAir) W.animAir(performance.now() / 1000); if (W.setTemps && (!S.tt || ms - S.tt > 1500)) { S.tt = ms; const bad = S.booted && S.devMount && S.devMount.flip; W.setTemps((bad ? 28.4 : 22) + Math.sin(ms / 2600) * 0.4, 35 + Math.sin(ms / 2100) * 0.7); } }
 
   /* ================= 월드 구성 ================= */
   function buildRackSlot() {
@@ -429,7 +429,7 @@
   /* ================= 이동 메뉴 · 상단 버튼 ================= */
   const ST = {
     bench: { label: '입고 작업대', x: -4.95, z: 0.45, look: [-4.95, 0.95, -0.8] }, cart: { label: 'PDU 보관대', x: -6.1, z: -2.75, look: [-6.1, 0.9, -3.6], l1: true },
-    front: { label: 'R12 앞', x: 0, z: -1.75, look: [0, 1.0, -2.5] }, rear: { label: 'R12 뒤', x: 0.1, z: -4.3, look: [0.1, 1.1, -3.5] }, r01: { label: 'R01 뒤', x: 0.65, z: -4.3, look: [0.65, 1.5, -3.5] },
+    front: { label: 'R12 앞', x: 0, z: -1.6, look: [0, 1.0, -2.5] }, rear: { label: 'R12 뒤', x: 0.1, z: -4.3, look: [0.1, 1.1, -3.5] }, r01: { label: 'R01 뒤', x: 0.65, z: -4.3, look: [0.65, 1.5, -3.5] },
     noc: { label: '관제 PC', x: 5.0, z: 2.55, look: [5.0, 0.95, 1.3] }, npc: { label: '감독관', x: -2.6, z: 2.35, look: [-2.6, 1.2, 3.2] },
   };
   function renderQuick() { const q = $('#quick'); if (!q) return; q.innerHTML = '<div class="qh">빠른 이동</div>' + Object.keys(ST).filter(k => !ST[k].l1 || S.n === 1).map(k => '<button data-go="' + k + '">' + ST[k].label + '</button>').join(''); }
@@ -454,6 +454,23 @@
     const d = W.doors[name], x = W.RACKX[name]; if (d.hit) { G.scene.remove(d.hit); G.usables = G.usables.filter(u => u !== d.hit); }
     d.hit = d.open ? useBox(x - 0.4, 1.0, ZF + 0.3, 0.2, 2.0, 0.5, name + ' 앞문 닫기', () => toggleDoor(name), 1) : useBox(x, 1.0, ZF + 0.045, 0.58, 2.0, 0.1, name + ' 앞문 열기', () => toggleDoor(name), 1);
   }
+  function buildRowB() {
+    ['R20', 'R21', 'R22', 'R23', 'R24'].forEach((n, i) => {
+      const g = W.makeRack(n, -1.3 + 0.65 * i, { z: W.ROWB_Z, flip: true, doorF: 'closed', doorR: 'closed' });
+      [1, 3, 5, 7, 9, 11, 13, 15].slice(0, 5 + (i % 3)).forEach(u => { const d = W.makeDevice(u % 4 === 1 && i === 2 ? 'switch' : 'server', { label: 'SRV-' + n + '-' + u }); d.g.position.set(0, W.yOfU(u), W.RD / 2 - 0.035 - d.D / 2); g.add(d.g); });
+    });
+  }
+  function showAirflow() {
+    const t = W.temps || { cold: 22, hot: 35 };
+    const svg = '<svg viewBox="0 0 560 250" style="width:100%;max-width:560px"><rect width="560" height="250" fill="#eef2f5" rx="8"/><rect x="0" y="206" width="560" height="44" fill="#c4ccd3"/><text x="10" y="232" font-size="12" fill="#556">바닥 아래(공급 챔버)</text><rect x="20" y="70" width="52" height="136" fill="#dfe5ea" stroke="#6b7a87"/><text x="46" y="140" font-size="11" text-anchor="middle" fill="#14606f">CRAH</text>' +
+      '<rect x="150" y="60" width="70" height="146" fill="#2a333c"/><rect x="340" y="60" width="70" height="146" fill="#2a333c"/><text x="185" y="52" font-size="12" text-anchor="middle" fill="#222">랙 줄 A</text><text x="375" y="52" font-size="12" text-anchor="middle" fill="#222">랙 줄 B</text>' +
+      '<rect x="225" y="206" width="110" height="4" fill="#2a78c8"/><text x="280" y="196" font-size="11" text-anchor="middle" fill="#1f5f9e">타공 타일</text><rect x="222" y="40" width="116" height="170" fill="#2a78c8" opacity=".12"/><text x="280" y="30" font-size="12" font-weight="700" text-anchor="middle" fill="#1f5f9e">콜드 아일 ' + t.cold.toFixed(1) + '℃</text>' +
+      '<rect x="100" y="40" width="46" height="170" fill="#c8553d" opacity=".12"/><rect x="414" y="40" width="46" height="170" fill="#c8553d" opacity=".12"/><text x="123" y="30" font-size="11" font-weight="700" text-anchor="middle" fill="#a8402a">핫 아일 ' + t.hot.toFixed(0) + '℃</text><text x="437" y="30" font-size="11" font-weight="700" text-anchor="middle" fill="#a8402a">핫 아일</text>' +
+      '<path d="M72 190 H280 V206" stroke="#2a78c8" stroke-width="4" fill="none" marker-end="url(#a)"/><path d="M280 200 V140" stroke="#2a78c8" stroke-width="4" fill="none"/><path d="M280 120 H226" stroke="#2a78c8" stroke-width="4" fill="none"/><path d="M280 120 H334" stroke="#2a78c8" stroke-width="4" fill="none"/>' +
+      '<path d="M150 110 H108" stroke="#c8553d" stroke-width="4" fill="none"/><path d="M410 110 H452" stroke="#c8553d" stroke-width="4" fill="none"/><path d="M123 100 V12" stroke="#c8553d" stroke-width="4" fill="none"/><path d="M437 100 V12" stroke="#c8553d" stroke-width="4" fill="none"/><path d="M123 12 H46 V70" stroke="#c8553d" stroke-width="4" fill="none"/><path d="M437 12 H520 V230" stroke="none" fill="none"/>' +
+      '<text x="280" y="244" font-size="11" text-anchor="middle" fill="#334">장비 앞면(차가운 쪽) → 팬 → 뒷면(더운 쪽)</text></svg>';
+    UI.open('<h2>콜드 아일 · 핫 아일</h2><p class="sub">랙을 마주 보게 두 줄로 놓고, 앞면끼리 마주 본 사이가 콜드 아일, 뒷면끼리 마주 본 곳이 핫 아일입니다.</p>' + svg + '<table class="t"><tr><td>콜드 아일</td><td>찬 공기가 바닥 아래에서 <b>타공 타일</b>로 올라와 장비 앞면으로 흡입됩니다. 지붕과 문으로 봉쇄해 더운 공기와 섞이지 않게 합니다. (' + t.cold.toFixed(1) + '℃ / 기준 18~27℃)</td></tr><tr><td>핫 아일</td><td>장비 뒷면으로 나온 더운 공기가 천장 <b>환기구</b>로 모여 냉각 장치(CRAH)로 돌아갑니다. (' + t.hot.toFixed(1) + '℃)</td></tr><tr><td>그래서</td><td>장비는 <b>앞면(흡기)이 콜드 아일</b>, 포트·전원이 있는 뒷면(배기)이 핫 아일을 향해야 합니다. 거꾸로 달면 더운 공기가 콜드 아일로 나옵니다.</td></tr></table><div class="row"><button class="btn" data-a="close">닫기</button></div>', { cls: 'wide' });
+  }
   function openMonitoring() {
     const cur = { A: 0, B: 0 }; if (S.booted) { const cs = Object.values(S.cords); cs.forEach(c => { cur[c.side] += G.S2 ? SERVER_W / cs.length / VOLT : 0; }); }
     UI.open('<h2>관제 · R12 모니터링</h2><table class="t"><tr><th>대상</th><th>상태</th></tr><tr><td>SRV-NEW-01</td><td>' + (S.booted ? (S.net ? '<b style="color:#2fbf71">UP (ping 응답)</b>' : '<b style="color:#e0a030">전원 ON · 네트워크 미연결</b>') : '<b style="color:#ef6a55">응답 없음</b>') + '</td></tr><tr><td>PDU-A 부하</td><td class="mono">' + cur.A.toFixed(1) + ' A' + (S.pdus.L ? ' / ' + S.pdus.L.rating + 'A' : ' (PDU 없음)') + '</td></tr><tr><td>PDU-B 부하</td><td class="mono">' + cur.B.toFixed(1) + ' A' + (S.pdus.R ? ' / ' + S.pdus.R.rating + 'A' : ' (PDU 없음)') + '</td></tr><tr><td>R12 콜드 아일 온도</td><td class="mono">' + (S.booted && S.devMount && S.devMount.flip ? '28℃ 경고' : '23℃') + '</td></tr></table><p class="mini">' + (S.booted && S.net ? '장비가 정상적으로 관제에 올라왔습니다.' : '아직 관제에 정상으로 올라오지 않았습니다.') + '</p><div class="row"><button class="btn" data-a="close">닫기</button></div>');
@@ -470,7 +487,10 @@
     useBox(R.x1 - 0.25, 1.0, -4.6, 0.5, 2.0, 0.35, '사다리', () => G.toast('사다리: 랙 상단 작업 때 씁니다. 이번 작업은 필요 없습니다.'));
     useBox(-1.0, 1.25, R.z1 - 0.1, 0.3, 0.3, 0.2, '비상 정지 버튼', () => UI.open('<h2>비상 정지</h2><p class="sub">누르면 센터 전체 전원이 차단됩니다. 정말 누를까요?</p><div class="row"><button class="btn" data-a="close">취소</button><button class="btn" data-a="estop">누른다</button></div>')); UI.act.estop = () => { UI.close(); S.fails += 2; G.sfx('err'); G.toast('센터 전체 정전! 고객사 항의 접수 (연습이라 즉시 복구됨). 불합격 +2', 'bad'); };
     useBox(0, 1.05, R.z1 - 0.12, 1.1, 2.1, 0.25, '출입문', () => G.toast('작업이 끝나기 전에는 퇴근할 수 없습니다.'));
-    [-0.65, 0, 0.65].forEach(x => useBox(x, 0.02, -1.85, 0.58, 0.1, 0.58, '타공 타일', () => G.toast('타공 타일: 찬 공기가 이쪽으로 올라옵니다 (콜드 아일).')));
+    useBox(0, 0.03, -1.6, 3.4, 0.1, 1.7, '콜드 아일 바닥 (타공 타일)', showAirflow);
+    useBox(-1.78, 1.5, -1.6, 0.1, 0.3, 0.45, '콜드 아일 온도계', showAirflow, 0); useBox(-1.95, 1.5, -4.5, 0.1, 0.3, 0.45, '핫 아일 온도계', showAirflow, 0);
+    useBox(4.2, 1.0, -5.05, 0.95, 2.0, 0.7, 'CRAH-01 냉각 장치', showAirflow); useBox(0, 3.08, -4.5, 3.2, 0.2, 1.6, '환기구 (더운 공기 회수)', showAirflow);
+    useBox(1.84, 1.1, -1.6, 0.2, 2.2, 1.7, '콜드 아일 출입문', () => G.toast('콜드 아일 출입문: 열어 둔 채 오래 있으면 찬 공기가 샙니다. 작업 후 닫아 둡니다.'));
     ['R10', 'R11', 'R02'].forEach(n => placeDoorHit(n));
     if (S.n === 1) useBox(5.0, 1.05, 1.3, 0.6, 0.45, 0.4, '관제 모니터 (R12 상태)', openMonitoring);
   }
