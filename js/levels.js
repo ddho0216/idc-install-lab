@@ -14,7 +14,7 @@
   /* ================= UI ================= */
   const UI = G.UI = { act: {} };
   UI.open = (html, o) => { o = o || {}; const m = $('#modal'); m.innerHTML = '<div class="card ' + (o.cls || '') + '">' + html + '</div>'; m.hidden = false; G.setModal(true); G.onEsc = o.noEsc ? null : UI.close; UI.onClose = o.onClose || null; };
-  UI.close = () => { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; G.setModal(false); G.onEsc = null; const f = UI.onClose; UI.onClose = null; f && f(); const c = $('#cv'); if (c.requestPointerLock) { const p = c.requestPointerLock(); p && p.catch && p.catch(() => {}); } };
+  UI.close = () => { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; G.setModal(false); G.onEsc = null; const f = UI.onClose; UI.onClose = null; f && f(); };
   document.addEventListener('click', e => { const el = e.target.closest('[data-a]'); if (!el) return; const f = UI.act[el.dataset.a]; if (f) f(el, e); });
   UI.dialog = (who, lines, buttons, o) => UI.open('<div class="dlg"><div class="face">' + who + '</div><div>' + lines.map(l => '<p>' + l + '</p>').join('') + '</div></div><div class="row">' + buttons.map(b => '<button class="btn' + (b.g ? ' ghost' : '') + '" data-a="' + b.a + '">' + b.t + '</button>').join('') + '</div>', o);
 
@@ -33,6 +33,7 @@
     W.buildRoom(); Object.keys(W.RACKX).forEach(k => W.makeRack(k, W.RACKX[k], { ticks: k === 'R12', doorF: k === 'R12' || k === 'R01' ? 'open' : 'closed', doorR: k === 'R12' || k === 'R01' ? null : 'closed' })); W.buildProps();
     buildRackSlot(); buildBox(); buildTableStuff(); buildDecor();
     if (n === 1) buildCart(); else { buildPreinstalled(); }
+    buildInteractives(); renderQuick();
     G.addUse(W.npcHit, { prompt: '감독관과 이야기', run: supervisorMenu });
     G.onTab = showOrder; G.onHelp = showHelp; G.onFrame = frame; G.onGuide = () => { S.guideMin = !S.guideMin; S.gsig = ''; };
     $('#lvname').textContent = S.lv.name; $('#hud').hidden = false; $('#start').hidden = true; G.running = true;
@@ -45,7 +46,7 @@
   function buildRackSlot() {
     const m = new T.Mesh(new T.PlaneGeometry(0.5, 1.9), new T.MeshBasicMaterial({ visible: false })); m.position.set(0, 0.1 + 0.95, ZF - 0.01); G.scene.add(m);
     G.addSlot(m, {
-      kind: 'rack', glow: false, accept: h => h.type === 'rails' || h.type === 'device',
+      kind: 'rack', glow: false, facing: 1, accept: h => h.type === 'rails' || h.type === 'device',
       prompt: (h, f) => { const u = uFromHit(f, h); return h.type === 'rails' ? 'U' + u + ' 에 레일 설치' : 'U' + u + ' 에 밀어 넣기 (' + (G.flip ? '앞면부터' : '뒷면부터') + ')'; },
       ghost: (f, h) => { const u = uFromHit(f, h); if (!G.ghost) { G.ghost = new T.Mesh(new T.BoxGeometry(EW + 0.03, U * 0.96, 0.6), new T.MeshBasicMaterial({ transparent: true, opacity: 0.4, depthWrite: false })); G.scene.add(G.ghost); } const ok = h.type === 'rails' ? !occupied(u) : (S.rails && S.rails.u === u && S.occ[u] === 'rails'); G.ghost.material.color.set(ok ? 0x2fbf71 : 0xd9654a); G.ghost.position.set(0, W.yOfU(u), ZF - 0.3); G.ghost.visible = true; },
       onPlace: (h, f) => { const u = uFromHit(f, h); if (h.type === 'rails') placeRails(h, u); else placeDevice(h, u); },
@@ -110,7 +111,10 @@
     // 관제 PC (2레벨)
     if (S.n === 2) { const pc = new T.Mesh(new T.BoxGeometry(0.6, 0.45, 0.4), new T.MeshBasicMaterial({ visible: false })); pc.position.set(5.0, 1.05, 1.3); G.scene.add(pc); G.addUse(pc, { prompt: '관제 PC (장비 등록)', run: openMonitor }); }
   }
-  function fill(rack, u, type, label, o) { const d = W.makeDevice(type, { label }); d.g.position.set(W.RACKX[rack], W.yOfU(u), W.RAILF - d.D / 2); G.scene.add(d.g); return d; }
+  function fill(rack, u, type, label, o) { const d = W.makeDevice(type, { label }); d.g.position.set(W.RACKX[rack], W.yOfU(u), W.RAILF - d.D / 2); G.scene.add(d.g);
+    if (label === 'ACC') useBox(W.RACKX[rack], W.yOfU(u), W.RAILF + 0.03, EW, U * 0.9, 0.06, 'SW-ACC-01 (R01 U40)', () => devInfo('SW-ACC-01', rack, u, 'switch'), 1);
+    else if (label) useBox(W.RACKX[rack], W.yOfU(u), W.RAILF + 0.03, EW, U * 0.9, 0.06, label + ' (' + rack + ' U' + u + ')', () => devInfo(label, rack, u, type), 1);
+    return d; }
   function buildDecor() {
     [1, 3, 5, 7, 9, 11, 13, 15].forEach((u, i) => fill('R11', u, 'server', 'SRV-DB-' + (i + 1)).g.position.y = W.yOfU(u));
     [1, 3, 5, 7, 9, 11].forEach((u, i) => fill('R10', u, 'server', 'SRV-WEB-' + (i + 1)));
@@ -129,7 +133,7 @@
   function buildCart() {
     [[16, 'a'], [16, 'b'], [20, 'a'], [20, 'b'], [32, 'a'], [32, 'b']].forEach((d, i) => { const it = W.makePdu('pdu' + d[0] + d[1], d[0], V3(-6.55 + i * 0.2, 0.1, -3.62)); it.type = 'pdu'; it.home = { p: it.g.position.clone(), r: 0 }; });
     Object.values(G.items).filter(i => i.kind === 'pdu').forEach(it => { it.pduSlotAccept = true; });
-    ['L', 'R'].forEach(lr => { const x = lr === 'L' ? 0.262 : -0.262; flushSlot(V3(x, 0.82, ZR + 0.07), [0.09, 1.55, 0.09], { kind: 'pdu', name: 'pdu' + lr, lr, accept: h => h.type === 'pdu', prompt: () => (lr === 'L' ? '후면 왼쪽' : '후면 오른쪽') + '에 PDU 설치', onPlace: (h) => installPdu(h, lr, false) }); });
+    ['L', 'R'].forEach(lr => { const x = lr === 'L' ? 0.262 : -0.262; flushSlot(V3(x, 0.82, ZR + 0.07), [0.09, 1.55, 0.09], { kind: 'pdu', name: 'pdu' + lr, lr, facing: -1, accept: h => h.type === 'pdu', prompt: () => (lr === 'L' ? '후면 왼쪽' : '후면 오른쪽') + '에 PDU 설치', onPlace: (h) => installPdu(h, lr, false) }); });
   }
   function buildPreinstalled() {
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].forEach(u => { S.occ[u] = 'decor'; if (u % 2) fill('R12', u, 'server', 'SRV-' + (u + 100)); });
@@ -143,7 +147,7 @@
     const done = () => {
       it.installed = { lr, side }; it.enabled = false; it.g.rotation.set(0, 0, 0); S.pdus[lr] = it; it.outlets = [];
       for (let k = 0; k < 12; k++) { const p = V3(pos.x, 1.42 - k * 0.105 - 0.05, pos.z - 0.045); it.outlets.push(flushSlot(p, [0.05, 0.04, 0.03], { kind: 'outlet', name: 'PDU-' + side + ' ' + (k + 1) + '번', side, k, pdu: it, out: V3(0, 0, -1), accept: cableAccept('outlet'), prompt: () => 'PDU-' + side + ' ' + (k + 1) + '번 콘센트에 꽂기', onPlace: cablePlace })); }
-      const hit = new T.Mesh(new T.BoxGeometry(0.1, 0.1, 0.07), new T.MeshBasicMaterial({ visible: false })); hit.position.set(pos.x, 1.5, pos.z - 0.05); G.scene.add(hit); G.addUse(hit, { prompt: 'PDU-' + side + ' 설정 화면', run: () => openPduPanel(it) });
+      const hit = new T.Mesh(new T.BoxGeometry(0.1, 0.1, 0.07), new T.MeshBasicMaterial({ visible: false })); hit.position.set(pos.x, 1.5, pos.z - 0.05); hit.userData.facing = -1; G.scene.add(hit); G.addUse(hit, { prompt: 'PDU-' + side + ' 설정 화면', run: () => openPduPanel(it) });
       G.pduLabel && 0; const old = it.g.children.find(c => c.isSprite); if (old) { it.g.remove(old); const lb = G.sprite('PDU-' + side + ' ' + it.rating + 'A', '#fff', 0.55, side === 'A' ? '#c8553d' : '#3a78c4'); lb.position.set(0, 1.62, 0); it.g.add(lb); }
       if (!instant) { G.sfx('place'); G.toast('PDU-' + side + ' (' + it.rating + 'A) 설치. LCD를 보면 설정할 수 있습니다.', 'ok'); }
     };
@@ -173,7 +177,7 @@
       h.g.visible = false; h.enabled = false; const rg = new T.Group(); rg.position.set(0, y, 0); G.scene.add(rg);
       [-1, 1].forEach(sx => { const r = box(0.012, 0.02, W.RD - 0.08, 0x8a949e, 0.4, 0.6); r.position.set(sx * (EW / 2 + 0.004), -U * 0.3, ZC); rg.add(r); r.position.z = ZC; rg.position.z = 0; [-1, 1].forEach(sz => { const br = box(0.03, 0.025, 0.006, 0x6f7983, 0.4, 0.6); br.position.set(sx * (EW / 2 + 0.012), -U * 0.2, ZC + sz * (W.RD / 2 - 0.045)); rg.add(br); screw(V3(sx * (EW / 2 + 0.012), y - U * 0.2, ZC + sz * (W.RD / 2 - 0.042)), sz, 0.15 + (sx > 0 ? 0.3 : 0) + (sz > 0 ? 0.15 : 0)); }); });
       S.railsGroup = rg; G.sfx('place'); G.toast('U' + u + ' 에 레일을 달았습니다.', 'ok');
-      const hit = new T.Mesh(new T.BoxGeometry(0.5, U, 0.04), new T.MeshBasicMaterial({ visible: false })); hit.position.set(0, y - U * 0.3, ZF + 0.02); G.scene.add(hit); S.railsUse = G.addUse(hit, { prompt: () => S.devMount ? '' : '레일 빼기', run: removeRails });
+      const hit = new T.Mesh(new T.BoxGeometry(0.5, U, 0.04), new T.MeshBasicMaterial({ visible: false })); hit.position.set(0, y - U * 0.3, ZF + 0.02); hit.userData.facing = 1; G.scene.add(hit); S.railsUse = G.addUse(hit, { prompt: () => S.devMount ? '' : '레일 빼기', run: removeRails });
     });
   }
   function removeRails() { if (S.devMount) { G.toast('장비를 먼저 빼야 합니다.', 'warn'); return; } const u = S.rails.u; delete S.occ[u]; S.rails = null; G.scene.remove(S.railsGroup); G.usables = G.usables.filter(x => x !== S.railsUse); const h = S.railsItem; h.g.visible = true; h.enabled = true; G.flyTo(h.g, h.home.p, h.home.r, 0.7, () => { h.placed = false; }); G.toast('레일을 풀어 작업대에 돌려놓았습니다.'); }
@@ -184,13 +188,13 @@
     G.path(dev.g, [{ p: V3(0, y + 0.18, stage + 0.2), r: rot, d: 0.9, arc: 0.12 }, { p: V3(0, y, stage), r: rot, d: 0.45, arc: 0 }, { p: V3(0, y, fin), r: rot, d: 1.8, arc: 0 }], () => {
       dev.g.updateMatrixWorld(true); S.earScrews = []; let d = 0.1; [-1, 1].forEach(sx => [-0.011, 0.011].forEach(yo => { S.earScrews.push(screw(dev.g.localToWorld(V3(sx * (EW / 2 + 0.015), yo, dev.D / 2 + 0.002)), flip ? -1 : 1, d)); d += 0.2; }));
       G.after(0.9, () => { makePortSlots(); G.sfx('place'); G.toast(S.n === 1 ? '서버를 밀어 넣고 랙 귀를 고정했습니다.' : '스위치를 밀어 넣고 랙 귀를 고정했습니다.', 'ok'); });
-      const hit = new T.Mesh(new T.BoxGeometry(0.46, U * 0.9, 0.05), new T.MeshBasicMaterial({ visible: false })); hit.position.set(0, y, W.RAILF + 0.01); G.scene.add(hit);
-      if (S.n === 1) { const btn = new T.Mesh(new T.BoxGeometry(0.04, U * 0.9, 0.04), new T.MeshBasicMaterial({ visible: false })); btn.position.copy(dev.g.localToWorld(V3((1020 / 1180 - 0.5) * EW, 0, dev.D / 2 + 0.01))); G.scene.add(btn); S.btn = btn; G.addUse(btn, { prompt: () => S.booted ? '전원 버튼 (이미 켜짐)' : '서버 전원 켜기', run: bootServer }); }
+      const hit = new T.Mesh(new T.BoxGeometry(0.46, U * 0.9, 0.05), new T.MeshBasicMaterial({ visible: false })); hit.position.set(0, y, W.RAILF + 0.01); hit.userData.facing = 1; G.scene.add(hit);
+      if (S.n === 1) { const btn = new T.Mesh(new T.BoxGeometry(0.04, U * 0.9, 0.04), new T.MeshBasicMaterial({ visible: false })); btn.position.copy(dev.g.localToWorld(V3((1020 / 1180 - 0.5) * EW, 0, dev.D / 2 + 0.01))); G.scene.add(btn); btn.userData.facing = flip ? -1 : 1; S.btn = btn; G.addUse(btn, { prompt: () => S.booted ? '전원 버튼 (이미 켜짐)' : '서버 전원 켜기', run: bootServer }); }
       S.devUse = G.addUse(hit, { prompt: () => S.conn.length ? '' : '장비 빼기', run: removeDevice }); S.devHit = hit;
     });
   }
   function removeDevice() {
-    if (S.conn.length) { G.toast('케이블이 꽂혀 있습니다. 먼저 뽑으세요 (포트 옆에서 [E]).', 'warn'); return; }
+    if (S.conn.length) { G.toast('케이블이 꽂혀 있습니다. 먼저 뽑으세요 (포트 옆을 클릭).', 'warn'); return; }
     const m = S.devMount, dev = S.dev; S.occ[m.u] = 'rails'; S.devMount = null; S.portSlots.forEach(G.rmSlot); S.portSlots = [];
     G.usables = G.usables.filter(u => u !== S.devUse && u !== S.btn); G.scene.remove(S.devHit); if (S.btn) G.scene.remove(S.btn);
     if (S.railsUse && !G.usables.includes(S.railsUse)) G.usables.push(S.railsUse);
@@ -228,7 +232,7 @@
   function afterConnect(rec) {
     const kind = rec.item.cable.kind, A = rec.a, B = rec.b;
     // 뽑기 (장비 쪽 끝에서)
-    const dsl = A.kind === 'outlet' || A.kind === 'swport' || A.kind === 'core' || A.kind === 'laptop' ? rec.pb : rec.pa, hit = new T.Mesh(new T.BoxGeometry(0.022, 0.025, 0.03), new T.MeshBasicMaterial({ visible: false })); hit.position.copy(dsl).add(V3(0, 0, -0.01)); G.scene.add(hit);
+    const dsl = A.kind === 'outlet' || A.kind === 'swport' || A.kind === 'core' || A.kind === 'laptop' ? rec.pb : rec.pa, hit = new T.Mesh(new T.BoxGeometry(0.022, 0.025, 0.03), new T.MeshBasicMaterial({ visible: false })); hit.position.copy(dsl).add(V3(0, 0, -0.01)); hit.userData.facing = -1; G.scene.add(hit);
     rec.hit = G.addUse(hit, { prompt: '케이블 뽑기', run: () => unplug(rec) }); rec.hitMesh = hit;
     if (kind === 'power') { const psu = (A.kind === 'psu' ? A : B), out = (A.kind === 'outlet' ? A : B); S.cords[psu.name] = { side: out.side, out: out.k + 1, rec }; S.dev.st.cord[psu.name === 'psu1' ? 0 : 1] = true; S.dev.refresh(); if (S.n === 2 && !S.sysOn) { S.sysOn = true; S.dev.st.power = true; S.dev.st.sys = 'boot'; S.dev.refresh(); G.sfx('boot'); G.after(3, () => { S.dev.st.sys = 'ok'; S.dev.refresh(); G.toast('스위치가 부팅을 마쳤습니다.', 'ok'); }); } updateLoads(); if (S.n === 1 && S.booted) { S.dev.st.power = true; S.dev.refresh(); } G.toast('전원 코드 연결: ' + psu.name.toUpperCase() + ' → PDU-' + out.side + ' ' + (out.k + 1) + '번', 'ok'); }
     else if (kind === 'net') { S.net = { port: (A.kind === 'swport' ? A : B).name }; S.dev.st.nic[0] = true; S.dev.refresh(); G.toast('UTP 케이블 연결: ' + S.net.port, 'ok'); }
@@ -237,12 +241,12 @@
     G.sfx('ok');
   }
   function afterFiber(rec, i, co, pos) {
-    const lab = new T.Mesh(new T.BoxGeometry(0.022, 0.03, 0.03), new T.MeshBasicMaterial({ visible: false })); lab.position.copy(S.dev.port(i === 1 ? 't1' : 't2')).add(V3(0, 0.06, S.devMount.flip ? 0.02 : -0.02)); G.scene.add(lab);
+    const lab = new T.Mesh(new T.BoxGeometry(0.022, 0.03, 0.03), new T.MeshBasicMaterial({ visible: false })); lab.position.copy(S.dev.port(i === 1 ? 't1' : 't2')).add(V3(0, 0.06, S.devMount.flip ? 0.02 : -0.02)); lab.userData.facing = S.devMount.flip ? 1 : -1; G.scene.add(lab);
     rec.labUse = G.addUse(lab, { prompt: () => S.fiber[i].label ? '라벨 붙임 (' + i + ')' : '광 케이블 T' + i + ' 라벨 붙이기', run: () => { S.fiber[i].label = true; G.sfx('click'); G.toast('T' + i + ' 케이블 양끝에 라벨을 붙였습니다.', 'ok'); } });
-    const fl = new T.Mesh(new T.BoxGeometry(0.022, 0.03, 0.03), new T.MeshBasicMaterial({ visible: false })); fl.position.copy(co.userData ? V3(0, 0, 0) : V3()); const cp = rec.a === co ? rec.pa : rec.pb; fl.position.copy(cp).add(V3(0, 0.03, -0.012)); G.scene.add(fl);
+    const fl = new T.Mesh(new T.BoxGeometry(0.022, 0.03, 0.03), new T.MeshBasicMaterial({ visible: false })); fl.position.copy(co.userData ? V3(0, 0, 0) : V3()); const cp = rec.a === co ? rec.pa : rec.pb; fl.position.copy(cp).add(V3(0, 0.03, -0.012)); fl.userData.facing = -1; G.scene.add(fl);
     rec.flipUse = G.addUse(fl, { prompt: () => S.fiber[i].wrong ? 'T' + i + ' Tx/Rx 뒤집기 (링크 DOWN)' : 'T' + i + ' 링크 정상', run: () => { if (!S.fiber[i].wrong) { G.toast('이미 링크가 올라와 있습니다.'); return; } S.fiber[i].wrong = false; syncLeds(); G.sfx('ok'); G.toast('Tx/Rx를 뒤집었습니다. T' + i + ' 링크 UP!', 'ok'); } });
     rec.extra = [lab, fl];
-    if (S.fiber[i].wrong) G.toast('T' + i + ' LED가 꺼져 있습니다. 광 극성이 뒤집혔을 수 있습니다 (코어 쪽 케이블 끝에서 [E]).', 'warn'); else G.toast('T' + i + ' 링크 UP (' + co.name + ')', 'ok');
+    if (S.fiber[i].wrong) G.toast('T' + i + ' LED가 꺼져 있습니다. 광 극성이 뒤집혔을 수 있습니다 (코어 쪽 케이블 끝을 클릭).', 'warn'); else G.toast('T' + i + ' 링크 UP (' + co.name + ')', 'ok');
   }
   function syncLeds() { const d = S.dev; [1, 2].forEach(i => { const f = S.fiber[i]; d.st.up[i - 1] = !!(f.core && !f.wrong); d.st.upBad[i - 1] = !!(f.core && f.wrong); }); d.refresh(); }
   function unplug(rec) {
@@ -262,7 +266,7 @@
   }
 
   /* ================= 오버레이: 지시서 / 도움말 / 검수 ================= */
-  function showHelp() { UI.open('<h2>조작법</h2><table class="t"><tr><td><kbd>W A S D</kbd></td><td>이동 (Shift = 빠르게)</td></tr><tr><td>마우스</td><td>시점 (화면을 클릭하면 고정, Esc로 해제)</td></tr><tr><td><kbd>E</kbd> / 클릭</td><td>집기 · 사용 · 설치</td></tr><tr><td><kbd>R</kbd></td><td>손에 든 장비 방향 바꾸기</td></tr><tr><td><kbd>Q</kbd> / 우클릭</td><td>내려놓기</td></tr><tr><td><kbd>Tab</kbd></td><td>작업지시서</td></tr></table><p class="mini">순서는 자유입니다. 끝났다고 생각되면 감독관에게 말을 걸어 검수를 받으세요.</p><div class="row"><button class="btn" data-a="close">닫기</button></div>'); }
+  function showHelp() { UI.open('<h2>조작법 (마우스만으로 됩니다)</h2><table class="t"><tr><td>바닥 클릭</td><td>그곳으로 걸어갑니다 (장애물은 알아서 피함)</td></tr><tr><td>물건·자리 클릭</td><td>멀리 있어도 다가가서 집기·사용·설치</td></tr><tr><td>드래그</td><td>시점 돌리기</td></tr><tr><td>휠</td><td>화면 확대/축소</td></tr><tr><td>우클릭</td><td>손에 든 물건 내려놓기</td></tr><tr><td>오른쪽 아래 버튼</td><td>빠른 이동</td></tr><tr><td>위쪽 버튼</td><td>작업지시서 · 안내판 · 도움말</td></tr></table><p class="mini">키보드(W A S D, E, R, Q, Tab)도 쓸 수 있지만 필요 없습니다. 순서는 자유이고, 끝나면 감독관에게 검수를 요청하세요.</p><div class="row"><button class="btn" data-a="close">닫기</button></div>'); }
   UI.act.close = () => UI.close();
   function showOrder() {
     const R = LabCLI.REQ, L = S.lv, a = loadA();
@@ -352,7 +356,7 @@
       else if (A > L.rating * 0.8) add('pdu', 'PDU 설치', 'fail', L.rating + 'A로는 부족합니다. 사용 한도 ' + L.rating + '×80% = ' + (L.rating * 0.8).toFixed(1) + 'A, 한쪽 장애 시 부하 ' + A.toFixed(1) + 'A. 차단기가 내려가 랙 전체가 정전될 수 있습니다.', '한쪽 PDU가 꺼졌을 때 남은 PDU가 전부 감당하는 전류를 계산해 보세요. (예정 부하 W ÷ 220V)');
       else add('pdu', 'PDU 설치', 'pass', 'PDU ' + L.rating + 'A × 2. 한쪽 장애 시에도 ' + A.toFixed(1) + 'A ≤ 사용 한도 ' + (L.rating * 0.8).toFixed(1) + 'A.');
       if (!L || !R) add('pdupos', 'PDU 위치·임계값', 'todo', 'PDU가 설치되지 않았습니다.', 'PDU를 먼저 설치하세요.');
-      else { const rate = L.rating, nearv = (a, b) => Math.abs(a - b) <= 0.3; if (!(L.warn >= 0 && R.warn >= 0 && L.crit >= 0 && R.crit >= 0)) add('pdupos', 'PDU 위치·임계값', 'todo', 'PDU 경보 임계값을 설정하지 않았습니다 (PDU LCD에서 [E]).', '후면의 PDU LCD를 보고 [E]를 눌러 경고/위험 값을 넣으세요. 기준은 지시서에 있습니다.');
+      else { const rate = L.rating, nearv = (a, b) => Math.abs(a - b) <= 0.3; if (!(L.warn >= 0 && R.warn >= 0 && L.crit >= 0 && R.crit >= 0)) add('pdupos', 'PDU 위치·임계값', 'todo', 'PDU 경보 임계값을 설정하지 않았습니다 (PDU LCD를 클릭).', '후면의 PDU LCD를 보고 클릭해서 경고/위험 값을 넣으세요. 기준은 지시서에 있습니다.');
         else if (![L, R].every(p => nearv(p.warn, rate * 0.7) && nearv(p.crit, rate * 0.8))) add('pdupos', 'PDU 위치·임계값', 'fail', '임계값이 기준과 다릅니다. 경고 = ' + rate + '×70% = ' + (rate * 0.7).toFixed(1) + 'A, 위험 = ' + rate + '×80% = ' + (rate * 0.8).toFixed(1) + 'A.', '지시서의 경고 70% / 위험 80% 기준을 정격에 곱해 보세요.');
         else add('pdupos', 'PDU 위치·임계값', 'pass', 'PDU-A 후면 왼쪽, PDU-B 후면 오른쪽, 경고 ' + (rate * 0.7).toFixed(1) + 'A / 위험 ' + (rate * 0.8).toFixed(1) + 'A.'); }
     } else add('pdu', 'PDU (사전 설치)', 'pass', 'PDU 32A × 2가 이미 설치돼 있습니다.');
@@ -362,7 +366,7 @@
     else if (S.n === 1 && m.u > 12) add('pos', '서버 위치·레일', 'fail', 'U' + m.u + ': 서버는 무겁습니다. 랙 아래쪽(U1~12)부터 채우는 게 원칙입니다. 위쪽이 무거우면 랙이 기울 위험이 있습니다.', '무거운 장비는 랙 아래부터 설치합니다.');
     else if (S.n === 2 && !(m.u >= 38 && m.u <= 41)) add('pos', '스위치 위치·레일', 'fail', 'U' + m.u + ': 스위치는 서버와 케이블로 이어지니 랙 상단(U38~41, TOR)에 둡니다.', '스위치는 랙 맨 위쪽(TOR)에 둡니다. 맨 위 U42는 비웁니다.');
     else add('pos', S.lv.label + ' 위치·레일', 'pass', 'R12 U' + m.u + ' 레일 위에 장착.');
-    if (!m) add('dir', '장비 방향', 'todo', '장비가 장착되지 않았습니다.', '장비를 밀어 넣을 때 [R]로 방향을 정하세요.'); else if (m.flip) add('dir', '장비 방향', 'fail', '포트·전원면이 전면(콜드 아일)을 향해 있습니다. 더운 공기가 찬 통로로 나오고, 전원 코드가 PDU가 있는 후면까지 돌아가야 합니다. 장비를 빼서 [R]로 방향을 바꿔 다시 넣으세요.', '장비 뒷면(포트·전원)이 후면(핫 아일)을 향해야 합니다. [R]로 방향을 바꿀 수 있어요.'); else add('dir', '장비 방향', 'pass', '포트·전원면이 후면(핫 아일)을 향합니다.');
+    if (!m) add('dir', '장비 방향', 'todo', '장비가 장착되지 않았습니다.', '장비를 밀어 넣기 전에 「방향 바꾸기」 버튼으로 방향을 정하세요.'); else if (m.flip) add('dir', '장비 방향', 'fail', '포트·전원면이 전면(콜드 아일)을 향해 있습니다. 더운 공기가 찬 통로로 나오고, 전원 코드가 PDU가 있는 후면까지 돌아가야 합니다. 장비를 빼서 「방향 바꾸기」로 방향을 바꿔 다시 넣으세요.', '장비 뒷면(포트·전원)이 후면(핫 아일)을 향해야 합니다. 손에 든 장비 아래 「방향 바꾸기」 버튼으로 바꿀 수 있어요.'); else add('dir', '장비 방향', 'pass', '포트·전원면이 후면(핫 아일)을 향합니다.');
     // 전원
     const cs = Object.keys(S.cords).map(k => S.cords[k]);
     if (cs.length < 2) add('pwr', '전원 A/B 이중화', 'todo', '전원 코드 ' + cs.length + '개만 연결돼 있습니다 (2개 필요).', '전원 코드 2개로 PSU1·PSU2를 각각 PDU에 연결하세요.'); else if (cs[0].side === cs[1].side) add('pwr', '전원 A/B 이중화', 'fail', '두 코드가 모두 PDU-' + cs[0].side + ' 에 꽂혀 있습니다. 그 계통이 꺼지면 장비가 통째로 꺼집니다.', 'PSU1과 PSU2를 서로 다른 PDU(A/B)에 나눠 꽂으세요.'); else add('pwr', '전원 A/B 이중화', 'pass', cs.map(c => 'PDU-' + c.side + ' ' + c.out + '번').join(' · ') + '에 분리 연결.');
@@ -373,9 +377,9 @@
       const f1 = S.fiber[1], f2 = S.fiber[2];
       if (!f1.core || !f2.core) add('fib', '광 업링크', 'todo', '업링크 ' + ((f1.core ? 1 : 0) + (f2.core ? 1 : 0)) + '개만 연결했습니다 (2개 필요).', '광 케이블 2개로 T1, T2를 코어에 연결하세요.');
       else if (f1.core === f2.core) add('fib', '광 업링크', 'fail', '두 업링크가 같은 코어(' + f1.core + ')에 연결됐습니다. 코어 한 대가 죽으면 단절됩니다.', 'T1은 CORE-A, T2는 CORE-B로 나눠야 합니다.');
-      else if (f1.wrong || f2.wrong) add('fib', '광 업링크', 'fail', '링크가 DOWN인 업링크가 있습니다. Tx/Rx가 뒤집혔습니다.', '링크 LED가 꺼진 쪽 코어 끝에서 [E]로 극성을 뒤집으세요.');
+      else if (f1.wrong || f2.wrong) add('fib', '광 업링크', 'fail', '링크가 DOWN인 업링크가 있습니다. Tx/Rx가 뒤집혔습니다.', '링크 LED가 꺼진 쪽 코어 끝을 클릭해 극성을 뒤집으세요.');
       else add('fib', '광 업링크', 'pass', 'T1 ↔ ' + f1.core + ', T2 ↔ ' + f2.core + ', 링크 UP.');
-      if (f1.core && f2.core) { if (!(f1.label && f2.label)) add('lab', '케이블 라벨', 'fail', '라벨이 없는 케이블이 있습니다. 나중에 장애가 나면 어느 선인지 알 수 없습니다.', '각 광 케이블 장비 쪽 끝에서 [E]로 라벨을 붙이세요.'); else add('lab', '케이블 라벨', 'pass', '양쪽 케이블 라벨 부착.'); } else add('lab', '케이블 라벨', 'todo', '케이블을 먼저 연결하세요.', '');
+      if (f1.core && f2.core) { if (!(f1.label && f2.label)) add('lab', '케이블 라벨', 'fail', '라벨이 없는 케이블이 있습니다. 나중에 장애가 나면 어느 선인지 알 수 없습니다.', '각 광 케이블 장비 쪽 끝을 클릭해 라벨을 붙이세요.'); else add('lab', '케이블 라벨', 'pass', '양쪽 케이블 라벨 부착.'); } else add('lab', '케이블 라벨', 'todo', '케이블을 먼저 연결하세요.', '');
       const d = S.cli, ts = d ? d.tasks() : null;
       if (!d || !ts) add('cli', '콘솔 설정', 'todo', '아직 설정하지 않았습니다.', '콘솔 케이블로 노트북을 연결하고 터미널을 여세요.'); else { const bad = ts.filter(t => !t.ok); if (bad.length) add('cli', '콘솔 설정', 'fail', '미완료: ' + bad.map(b => b.label).join(' / '), '노트북 터미널의 체크리스트를 확인하세요. 저장(write memory)까지 해야 합니다.'); else add('cli', '콘솔 설정', 'pass', '설정 완료, 저장됨.'); }
       if (!S.mon.ok) add('mon', '관제 연동', 'todo', '관제 PC에서 등록·검증을 마치지 않았습니다.', '관제 PC에서 장비를 등록하고 검증하세요.'); else add('mon', '관제 연동', 'pass', '등록 · ping/SNMP · 그래프 수신 확인.');
@@ -401,25 +405,75 @@
   function guideSteps() {
     const n = S.n, cs = Object.keys(S.cords).length, pd = S.pdus, hasL = pd.L && pd.R, th = hasL && [pd.L, pd.R].every(p => p.warn >= 0 && p.crit >= 0);
     const c = [
-      { t: '박스 열기', how: '작업대의 갈색 박스를 바라보고 [E]. 테이프를 뜯고 뚜껑이 열립니다.', done: S.box.open },
+      { t: '박스 열기', how: '작업대의 갈색 박스를 클릭하면 테이프를 뜯고 뚜껑이 열립니다.', done: S.box.open },
       { t: '입고서 대조', how: '박스 앞면의 <b>S/N 라벨</b>과 작업대 <b>클립보드</b>의 입고서를 비교합니다. 다른 줄만 "이상"으로 바꿔 제출하세요.', done: S.recvSubmitted },
     ];
-    if (n === 1) c.push({ t: 'PDU 설치', how: '태블릿으로 전류를 계산 → 보관대(왼쪽 안쪽)에서 PDU를 집고([E]) → 랙 <b>뒤쪽</b> 좌/우 세로 자리를 바라보고 클릭. 한쪽이 꺼졌을 때 기준으로 정격을 고르세요.', done: !!hasL }, { t: 'PDU 경보값', how: '랙 뒤쪽 PDU 위의 LCD를 바라보고 [E] → 경고·위험 전류 입력 후 저장.', done: !!th });
+    if (n === 1) c.push({ t: 'PDU 설치', how: '태블릿으로 전류를 계산 → 보관대(왼쪽 안쪽)에서 PDU를 집고(클릭) → 랙 <b>뒤쪽</b> 좌/우 세로 자리를 클릭. 한쪽이 꺼졌을 때 기준으로 정격을 고르세요.', done: !!hasL }, { t: 'PDU 경보값', how: '랙 뒤쪽 PDU 위의 LCD를 클릭 → 경고·위험 전류 입력 후 저장.', done: !!th });
     c.push({ t: '레일 킷', how: '작업대의 레일 킷을 집고 → 랙 <b>앞면</b>에서 달 U 칸을 바라보고 클릭. 초록=가능, 빨강=불가.', done: !!S.rails });
-    c.push({ t: n === 1 ? '서버 장착' : '스위치 장착(TOR)', how: '장비를 집고 [R]로 방향을 정합니다(뒷면=포트·전원이 랙 안쪽으로 먼저). 레일을 단 U 칸을 바라보고 클릭.' + (n === 2 ? ' 스위치는 랙 맨 위쪽(U38~41).' : ' 서버는 아래쪽부터.'), done: !!S.devMount });
+    c.push({ t: n === 1 ? '서버 장착' : '스위치 장착(TOR)', how: '장비를 집고 아래 「방향 바꾸기」로 방향을 정합니다(뒷면=포트·전원이 랙 안쪽으로 먼저). 레일을 단 U 칸을 클릭.' + (n === 2 ? ' 스위치는 랙 맨 위쪽(U38~41).' : ' 서버는 아래쪽부터.'), done: !!S.devMount });
     c.push({ t: '전원 A/B', how: '전원 코드를 집고 → 장비 뒷면 <b>PSU 입구</b> 클릭 → PDU <b>콘센트</b> 클릭. 2개를 서로 다른 PDU(A/B)에.', done: cs >= 2 });
-    if (n === 1) c.push({ t: '네트워크', how: 'UTP를 집고 → 서버 뒷면 NIC1 클릭 → 옆 랙(R01) 뒷면의 SW-ACC-01 빈 포트 클릭.', done: !!S.net }, { t: '전원 켜기', how: '서버 <b>앞면</b> 오른쪽 전원 버튼을 바라보고 [E].', done: !!S.booted });
-    else { const f = S.fiber; c.push({ t: '광 업링크', how: '광 케이블 2개: T1 → CORE-A, T2 → CORE-B (R01 뒷면). 링크 LED가 꺼지면 코어 쪽 끝에서 [E]로 Tx/Rx를 뒤집고, 장비 쪽 끝에서 [E]로 라벨을 붙입니다.', done: !!(f[1].core && f[2].core && !f[1].wrong && !f[2].wrong && f[1].label && f[2].label) }, { t: '콘솔 설정', how: '콘솔 케이블: 스위치 CON ↔ 노트북 연결 → 노트북 [E]로 터미널 → 작업지시서대로 설정하고 write memory.', done: !!(S.cli && S.cli.tasks().every(t => t.ok)) }, { t: '관제 등록', how: '관제 PC(오른쪽 책상) [E] → 등록 → 검증 실행.', done: !!S.mon.ok }); }
-    c.push({ t: '검수 요청', how: '다 됐다고 생각되면 감독관에게 [E]로 검수를 요청하세요.', done: S.done });
+    if (n === 1) c.push({ t: '네트워크', how: 'UTP를 집고 → 서버 뒷면 NIC1 클릭 → 옆 랙(R01) 뒷면의 SW-ACC-01 빈 포트 클릭.', done: !!S.net }, { t: '전원 켜기', how: '서버 <b>앞면</b> 오른쪽 전원 버튼을 클릭.', done: !!S.booted });
+    else { const f = S.fiber; c.push({ t: '광 업링크', how: '광 케이블 2개: T1 → CORE-A, T2 → CORE-B (R01 뒷면). 링크 LED가 꺼지면 코어 쪽 끝을 클릭해 Tx/Rx를 뒤집고, 장비 쪽 끝을 클릭해 라벨을 붙입니다.', done: !!(f[1].core && f[2].core && !f[1].wrong && !f[2].wrong && f[1].label && f[2].label) }, { t: '콘솔 설정', how: '콘솔 케이블: 스위치 CON ↔ 노트북 연결 → 노트북을 클릭해 터미널 → 작업지시서대로 설정하고 write memory.', done: !!(S.cli && S.cli.tasks().every(t => t.ok)) }, { t: '관제 등록', how: '관제 PC(오른쪽 책상) 클릭 → 등록 → 검증 실행.', done: !!S.mon.ok }); }
+    c.push({ t: '검수 요청', how: '다 됐다고 생각되면 감독관을 클릭해 검수를 요청하세요.', done: S.done });
     return c;
   }
   function renderGuide() {
     const el = $('#guide'); if (!el) return; const st = guideSteps(), cur = st.findIndex(x => !x.done), h = G.hold;
     let tip = '';
-    if (h) { const T2 = { rails: '랙 앞면에서 레일을 달 U 칸을 바라보고 클릭하세요.', device: '랙 앞면의 레일 칸을 바라보고 클릭. <b>[R]</b>로 방향을 바꿉니다 (현재 ' + (G.flip ? '앞면부터' : '뒷면부터') + ').', pdu: '랙 뒤쪽 좌(A)/우(B) 세로 자리를 바라보고 클릭하세요.' };
+    if (h) { const T2 = { rails: '랙 앞면에서 레일을 달 U 칸을 클릭하세요.', device: '레일 칸을 클릭. 아래 <b>「방향 바꾸기」</b>로 방향을 바꿉니다 (현재 ' + (G.flip ? '앞면부터' : '뒷면부터') + ').', pdu: '랙 뒤쪽 좌(A)/우(B) 세로 자리를 클릭하세요.' };
       if (h.type === 'cable') { const k = h.cable.kind; tip = h.pending ? '한쪽을 꽂았습니다. <b>반대쪽 끝</b>을 꽂을 곳을 바라보고 클릭하세요.' : ({ power: '한쪽은 장비 뒷면 <b>PSU 입구</b>, 반대쪽은 <b>PDU 콘센트</b>. 초록으로 빛나는 곳이 꽂을 수 있는 곳입니다.', net: '서버 <b>NIC1</b> ↔ R01의 SW-ACC-01 빈 포트.', fiber: '스위치 <b>T1/T2</b> ↔ R01 코어 포트. 서로 다른 코어에.', console: '스위치 <b>CON</b> 포트에 꽂습니다 (노트북 연결).' })[k]; } else tip = T2[h.type] || ''; }
     const sig = [S.guideMin, cur, st.map(x => +x.done).join(''), tip, G.flip].join('|'); if (sig === S.gsig) return; S.gsig = sig;
-    el.innerHTML = '<div class="gh"><b>하는 방법</b><span>[G] ' + (S.guideMin ? '펼치기' : '접기') + '</span></div>' + (S.guideMin ? '' : '<div class="gk"><kbd>W A S D</kbd>이동 <kbd>마우스</kbd>시점 <kbd>E</kbd>/클릭 집기·사용 <kbd>R</kbd>방향 <kbd>Q</kbd>내려놓기 <kbd>Tab</kbd>지시서</div><ol class="gs">' + st.map((x, i) => '<li class="' + (x.done ? 'done' : i === cur ? 'cur' : '') + '"><span class="n">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + x.t + '</b>' + (i === cur ? '<small>' + x.how + '</small>' : '') + '</div></li>').join('') + '</ol>' + (tip ? '<div class="gt">' + tip + '</div>' : ''));
+    el.innerHTML = '<div class="gh"><b>하는 방법</b><span>[G] ' + (S.guideMin ? '펼치기' : '접기') + '</span></div>' + (S.guideMin ? '' : '<div class="gk"><kbd>바닥 클릭</kbd>이동 <kbd>물건 클릭</kbd>집기·사용·설치 <kbd>드래그</kbd>시점 <kbd>휠</kbd>확대 <kbd>우클릭</kbd>내려놓기</div><ol class="gs">' + st.map((x, i) => '<li class="' + (x.done ? 'done' : i === cur ? 'cur' : '') + '"><span class="n">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + x.t + '</b>' + (i === cur ? '<small>' + x.how + '</small>' : '') + '</div></li>').join('') + '</ol>' + (tip ? '<div class="gt">' + tip + '</div>' : ''));
   }
+
+  /* ================= 이동 메뉴 · 상단 버튼 ================= */
+  const ST = {
+    bench: { label: '입고 작업대', x: -4.95, z: 0.45, look: [-4.95, 0.95, -0.8] }, cart: { label: 'PDU 보관대', x: -6.1, z: -2.75, look: [-6.1, 0.9, -3.6], l1: true },
+    front: { label: 'R12 앞', x: 0, z: -1.75, look: [0, 1.0, -2.5] }, rear: { label: 'R12 뒤', x: 0.1, z: -4.3, look: [0.1, 1.1, -3.5] }, r01: { label: 'R01 뒤', x: 0.65, z: -4.3, look: [0.65, 1.5, -3.5] },
+    noc: { label: '관제 PC', x: 5.0, z: 2.55, look: [5.0, 0.95, 1.3] }, npc: { label: '감독관', x: -2.6, z: 2.35, look: [-2.6, 1.2, 3.2] },
+  };
+  function renderQuick() { const q = $('#quick'); if (!q) return; q.innerHTML = '<div class="qh">빠른 이동</div>' + Object.keys(ST).filter(k => !ST[k].l1 || S.n === 1).map(k => '<button data-go="' + k + '">' + ST[k].label + '</button>').join(''); }
+  document.addEventListener('click', e => {
+    const g = e.target.closest && e.target.closest('[data-go]'); if (g && G.running && !G.modal) { const t = ST[g.dataset.go]; G.walkTo(t.x, t.z, { look: V3(t.look[0], t.look[1], t.look[2]) }); return; }
+    const t = e.target.closest && e.target.closest('[data-top]'); if (!t || !G.running) return;
+    if (t.dataset.top === 'order') showOrder(); else if (t.dataset.top === 'guide') G.onGuide(); else if (t.dataset.top === 'help') showHelp();
+  });
+
+  /* ================= 물건마다 눌러 볼 수 있는 것들 ================= */
+  function useBox(x, y, z, w, h, d, prompt, run, facing) { const m = new T.Mesh(new T.BoxGeometry(w, h, d), new T.MeshBasicMaterial({ visible: false })); m.position.set(x, y, z); m.userData.facing = facing || 0; G.scene.add(m); G.addUse(m, { prompt, run }); return m; }
+  function devInfo(name, rack, u, type) {
+    const cpu = 18 + (u * 7 + name.length * 3) % 52, acc = name === 'SW-ACC-01', core = /CORE/.test(name);
+    UI.open('<h2>' + name + '</h2><p class="sub">' + rack + ' U' + u + ' · ' + (acc ? '48포트 액세스 스위치' : core ? '코어 스위치' : '1U 서버') + ' (가상)</p><table class="t">' + (acc ? '<tr><td>사용 포트</td><td>10 / 48</td></tr><tr><td>빈 포트</td><td>Gi1/0/11 ~ 13 (이번 작업용)</td></tr><tr><td>전원</td><td>A/B 이중화 정상</td></tr>' : core ? '<tr><td>업링크</td><td>Te1/0/12 (신규 스위치용 예약)</td></tr><tr><td>상태</td><td>정상 (가동 ' + (200 + u) + '일)</td></tr>' : '<tr><td>상태</td><td>가동 중</td></tr><tr><td>CPU</td><td>' + cpu + '%</td></tr><tr><td>전원</td><td>A/B 이중화 정상</td></tr>') + '</table><div class="row"><button class="btn" data-a="close">닫기</button></div>');
+  }
+  function toggleDoor(name) {
+    const d = W.doors[name], to = d.open ? 0 : -1.9, from = d.grp.rotation.y; d.open = !d.open; G.sfx('click');
+    G.anim(0.7, k => { d.grp.rotation.y = from + (to - from) * k; }, null);
+    G.usables = G.usables.filter(u => u !== d.hit); d.hit = null; G.after(0.01, () => placeDoorHit(name));
+  }
+  function placeDoorHit(name) {
+    const d = W.doors[name], x = W.RACKX[name]; if (d.hit) { G.scene.remove(d.hit); G.usables = G.usables.filter(u => u !== d.hit); }
+    d.hit = d.open ? useBox(x - 0.4, 1.0, ZF + 0.3, 0.2, 2.0, 0.5, name + ' 앞문 닫기', () => toggleDoor(name), 1) : useBox(x, 1.0, ZF + 0.045, 0.58, 2.0, 0.1, name + ' 앞문 열기', () => toggleDoor(name), 1);
+  }
+  function openMonitoring() {
+    const cur = { A: 0, B: 0 }; if (S.booted) { const cs = Object.values(S.cords); cs.forEach(c => { cur[c.side] += G.S2 ? SERVER_W / cs.length / VOLT : 0; }); }
+    UI.open('<h2>관제 · R12 모니터링</h2><table class="t"><tr><th>대상</th><th>상태</th></tr><tr><td>SRV-NEW-01</td><td>' + (S.booted ? (S.net ? '<b style="color:#2fbf71">UP (ping 응답)</b>' : '<b style="color:#e0a030">전원 ON · 네트워크 미연결</b>') : '<b style="color:#ef6a55">응답 없음</b>') + '</td></tr><tr><td>PDU-A 부하</td><td class="mono">' + cur.A.toFixed(1) + ' A' + (S.pdus.L ? ' / ' + S.pdus.L.rating + 'A' : ' (PDU 없음)') + '</td></tr><tr><td>PDU-B 부하</td><td class="mono">' + cur.B.toFixed(1) + ' A' + (S.pdus.R ? ' / ' + S.pdus.R.rating + 'A' : ' (PDU 없음)') + '</td></tr><tr><td>R12 콜드 아일 온도</td><td class="mono">' + (S.booted && S.devMount && S.devMount.flip ? '28℃ 경고' : '23℃') + '</td></tr></table><p class="mini">' + (S.booted && S.net ? '장비가 정상적으로 관제에 올라왔습니다.' : '아직 관제에 정상으로 올라오지 않았습니다.') + '</p><div class="row"><button class="btn" data-a="close">닫기</button></div>');
+  }
+  function buildInteractives() {
+    const R = W.ROOM;
+    useBox(R.x0 + 0.1, 2.4, -1.6, 0.2, 0.5, 0.5, '벽시계 보기', () => { const m = Math.floor((Date.now() - S.t0) / 60000); G.toast('작업 시작 후 ' + m + '분 경과. 마감(17:00)까진 천천히 해도 됩니다.'); });
+    useBox(R.x1 - 0.1, 1.6, -2.4, 0.2, 0.95, 1.7, '화이트보드 읽기', () => UI.open('<h2>오늘의 작업 · R12 랙</h2><table class="t"><tr><td>09:00</td><td>입고 확인</td></tr><tr><td>10:00</td><td>PDU / 레일 설치</td></tr><tr><td>13:00</td><td>장비 장착·배선</td></tr><tr><td>16:00</td><td>관제 연동 확인</td></tr><tr><td>17:00</td><td>티켓 마감</td></tr></table><p class="mini" style="color:#ef6a55">※ 전원은 반드시 A/B 분리</p><div class="row"><button class="btn" data-a="close">닫기</button></div>'));
+    useBox(R.x0 + 0.1, 1.7, 0.2, 0.2, 0.7, 1.1, '벽 게시물: 작업 전 확인', () => UI.open('<h2>작업 전 확인</h2><ul><li>장비·시리얼 대조</li><li>전원은 A/B 분리</li><li>케이블은 라벨 부착</li><li>정리 후 사진 기록</li></ul><div class="row"><button class="btn" data-a="close">닫기</button></div>'));
+    useBox(R.x1 - 0.1, 1.7, 0.2, 0.2, 0.7, 1.1, '벽 게시물: 전력 기준', () => UI.open('<h2>전력 기준</h2><ul><li>정격 전류의 80%까지만 사용</li><li>한쪽 장애 시 기준으로 계산</li><li>A/B는 평소엔 반반</li></ul><div class="row"><button class="btn" data-a="close">닫기</button></div>'));
+    let toolOpen = false; useBox(-5.5, 0.15, 0.5, 0.55, 0.3, 0.3, '공구함 열기/닫기', () => { toolOpen = !toolOpen; const a = toolOpen ? -1.2 : 0, f = W.toolLid.rotation.x; G.anim(0.4, k => { W.toolLid.rotation.x = f + (a - f) * k; }, null); G.sfx('click'); if (toolOpen) G.toast('공구함: 육각렌치, 케이블 타이, 라벨 용지, 드라이버, 랜 테스터', 'ok'); });
+    useBox(-6.7, 0.25, 4.5, 0.25, 0.5, 0.25, '소화기 확인', () => G.toast('소화기: 점검일 2026-10-15, 압력 정상 (가상)'));
+    useBox(1.3, 0.21, 6.2, 0.4, 0.45, 0.4, '쓰레기통', () => G.toast('포장재는 작업이 끝난 뒤 한꺼번에 정리합니다.'));
+    useBox(R.x1 - 0.25, 1.0, -4.6, 0.5, 2.0, 0.35, '사다리', () => G.toast('사다리: 랙 상단 작업 때 씁니다. 이번 작업은 필요 없습니다.'));
+    useBox(-1.0, 1.25, R.z1 - 0.1, 0.3, 0.3, 0.2, '비상 정지 버튼', () => UI.open('<h2>비상 정지</h2><p class="sub">누르면 센터 전체 전원이 차단됩니다. 정말 누를까요?</p><div class="row"><button class="btn" data-a="close">취소</button><button class="btn" data-a="estop">누른다</button></div>')); UI.act.estop = () => { UI.close(); S.fails += 2; G.sfx('err'); G.toast('센터 전체 정전! 고객사 항의 접수 (연습이라 즉시 복구됨). 불합격 +2', 'bad'); };
+    useBox(0, 1.05, R.z1 - 0.12, 1.1, 2.1, 0.25, '출입문', () => G.toast('작업이 끝나기 전에는 퇴근할 수 없습니다.'));
+    [-0.65, 0, 0.65].forEach(x => useBox(x, 0.02, -1.85, 0.58, 0.1, 0.58, '타공 타일', () => G.toast('타공 타일: 찬 공기가 이쪽으로 올라옵니다 (콜드 아일).')));
+    ['R10', 'R11', 'R02'].forEach(n => placeDoorHit(n));
+    if (S.n === 1) useBox(5.0, 1.05, 1.3, 0.6, 0.45, 0.4, '관제 모니터 (R12 상태)', openMonitoring);
+  }
+  UI.act.close = () => UI.close();
   G.inspectList = inspectList; G.S2 = S;
 })();
