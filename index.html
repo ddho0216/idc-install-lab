@@ -2,25 +2,407 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IDC Labs · 3D 실습실</title>
-<meta name="description" content="책상 위 3D 실습판을 돌려 보고, 핀에서 핀으로 선을 이으며 IDC 설치 원리를 익히는 가상 실습 (모든 값은 가상)">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>서버 증설 시뮬레이터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@500;600&display=swap">
-<link rel="stylesheet" href="labs/labs.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@500;600&display=swap">
+<style>
+/* 레이아웃: 서버실 디오라마(전체 화면 3D) 위에 왼쪽 작업 카드 · 오른쪽 계측 패널 · 아래 조작 막대 */
+:root{
+  --room:#2a2824; --card:#f3efe6; --card2:#e8e2d5; --ink:#1d1b18; --mute:#76705f; --line:#d8d0bf;
+  --accent:#d9480f; --panel:#1b1a18; --pink:#d9d2c5; --ok:#3fbf86; --warn:#f2b44a; --bad:#ff6f5c;
+  --serif:'Noto Serif KR',Georgia,serif; --sans:'Noto Sans KR',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:var(--room);color:var(--ink);font:14px/1.55 var(--sans)}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#cv.hot{cursor:pointer}
+.brand{position:fixed;left:max(24px,env(safe-area-inset-left,0px));top:calc(20px + env(safe-area-inset-top,0px));z-index:3;color:#efe7da;font:500 15px var(--mono);display:flex;gap:10px;align-items:baseline}
+.brand em{color:#f27a3d;font-style:normal}.brand i{opacity:.45;font-style:normal}.brand span{font:500 17px var(--serif)}
+.clock{position:fixed;right:max(24px,env(safe-area-inset-right,0px));top:calc(18px + env(safe-area-inset-top,0px));z-index:3;display:flex;gap:2px;padding:5px;border-radius:999px;background:rgba(243,239,230,.95);box-shadow:0 8px 24px rgba(0,0,0,.25);font:500 12.5px var(--mono);color:var(--mute)}
+.clock span{padding:6px 14px;border-radius:999px}.clock b{color:var(--ink);font-weight:600;margin-left:6px}.clock .on{background:var(--panel);color:#cfc6b6}.clock .on b{color:#f27a3d}
+.lesson{position:fixed;left:max(20px,env(safe-area-inset-left,0px));top:calc(64px + env(safe-area-inset-top,0px));bottom:20px;width:350px;z-index:3;overflow:auto;background:var(--card);border-radius:20px;padding:20px 22px 18px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.kick{display:flex;justify-content:space-between;font:500 11.5px var(--mono);letter-spacing:.12em;color:var(--accent)}.kick b{color:var(--mute);font-weight:500}
+.lesson h1{margin:6px 0 6px;font:600 29px/1.2 var(--serif);letter-spacing:-.01em;text-wrap:balance}
+.lesson .desc{margin:0 0 12px;color:#4a453b;font-size:14.5px}
+.lesson ol{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.lesson li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px solid var(--line);color:#a69f8f;font-size:14px;cursor:pointer}
+.lesson li .n{font:500 12px var(--mono);padding-top:2px}
+.lesson li.cur{color:var(--ink);font-weight:500}.lesson li.cur .n{color:var(--accent)}
+.lesson li.done{color:#8b8474}.lesson li.done .t{text-decoration:line-through;text-decoration-color:#c9c1b0}.lesson li.done .n{color:#2f9e6b}
+.lesson li small{display:block;font-weight:400;color:var(--mute);font-size:12.5px;margin-top:2px}
+details.why{margin:14px 0;border-radius:12px;background:var(--card2)}
+details.why summary{padding:12px 14px;cursor:pointer;font:500 12px var(--mono);letter-spacing:.1em;color:var(--accent);list-style:none}
+details.why summary::after{content:' +'}details.why[open] summary::after{content:' −'}
+details.why p{margin:0;padding:0 14px 14px;font-size:13.5px;color:#4a453b}
+.next{display:block;width:100%;padding:12px;border-radius:999px;border:1.5px solid var(--ink);background:transparent;font:500 14px var(--sans);color:var(--ink);cursor:pointer}
+.next:hover{background:var(--ink);color:#fff}
+.instr{position:fixed;right:max(20px,env(safe-area-inset-right,0px));top:calc(72px + env(safe-area-inset-top,0px));width:310px;z-index:3;background:rgba(27,26,24,.94);color:var(--pink);border-radius:18px;padding:16px 18px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.instr h2{margin:0 0 10px;font:500 11.5px var(--mono);letter-spacing:.14em;color:#9a9284}
+.row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font:400 12.5px var(--mono)}
+.row span:first-child{color:#8d8678}.row span:last-child{text-align:right;color:#efe8db;font-variant-numeric:tabular-nums}
+.ok{color:var(--ok)!important}.warn{color:var(--warn)!important}.bad{color:var(--bad)!important}
+.bars{display:grid;gap:7px;margin:4px 0 8px}
+.bars div{display:grid;grid-template-columns:52px minmax(0,1fr) 92px;gap:8px;align-items:center;font:500 11.5px var(--mono);color:#8d8678;font-variant-numeric:tabular-nums}
+.bars i{height:7px;border-radius:4px;background:#34302b;position:relative;overflow:hidden}
+.bars i b{position:absolute;inset:0 auto 0 0;border-radius:4px;transition:width .4s}
+.bars i::after{content:"";position:absolute;left:80%;top:0;bottom:0;width:2px;background:#f27a3d}
+.bars span{text-align:right;color:#efe8db}
+.note{margin:8px 0 0;padding-top:8px;border-top:1px solid #34302c;font:400 11.5px/1.5 var(--mono);color:#8d8678}
+.bar{position:fixed;left:390px;right:20px;margin:0 auto;width:max-content;max-width:calc(100vw - 420px);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:3;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;padding:8px 10px 8px 18px;border-radius:999px;background:rgba(243,239,230,.97);box-shadow:0 12px 34px rgba(0,0,0,.4)}
+.wif{display:flex;gap:10px;align-items:center;border:0;background:transparent;font:500 13.5px var(--sans);color:#4a453b;cursor:pointer;padding:6px 4px}
+.wif small{font:500 11px var(--mono);color:var(--accent);letter-spacing:.08em}
+.tg{width:38px;height:22px;border-radius:999px;background:#cfc7b6;position:relative;flex:none;transition:background .15s}
+.tg::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.wif[aria-pressed="true"] .tg{background:var(--accent)}.wif[aria-pressed="true"] .tg::after{left:19px}
+.btn{border:0;border-radius:999px;padding:10px 18px;font:500 13.5px var(--sans);cursor:pointer;background:transparent;color:var(--ink)}
+.btn.pri{background:var(--accent);color:#fff}
+.btn:disabled{opacity:.35;cursor:default}
+button:focus-visible,li:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{position:fixed;left:390px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:2;font:400 11.5px var(--mono);color:#b9ae9c;pointer-events:none}
+.bub{position:fixed;z-index:2;transform:translate(-50%,-100%);pointer-events:none;display:flex;flex-direction:column;align-items:center}
+.bub div{display:flex;gap:8px;align-items:center;padding:6px 12px;border-radius:999px;background:rgba(20,19,17,.92);color:#f1ebdf;font:500 12.5px var(--sans);white-space:nowrap;border:1px solid rgba(255,255,255,.12);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.bub div::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c,#f1ebdf)}
+.bub i{width:1.5px;height:22px;background:var(--c,#f1ebdf);opacity:.8}
+.bub.tap div{background:var(--accent);border-color:var(--accent);color:#fff}.bub.tap div::before{background:#fff}
+.mock{pointer-events:auto;position:fixed;right:max(24px,env(safe-area-inset-right,0px));bottom:calc(26px + env(safe-area-inset-bottom,0px));z-index:2;font:500 11px var(--mono);color:#b9ae9c;letter-spacing:.06em}
+@media (max-width:1200px){.instr{width:270px}.hint,.mock{display:none}}
+@media (max-width:900px){
+  .lesson{top:auto;left:8px;right:8px;width:auto;bottom:76px;max-height:38vh;padding:14px 16px}
+  .lesson ol,.lesson details{display:none}.lesson h1{font-size:22px}
+  .instr{display:none}.clock{left:8px;right:8px;justify-content:center;flex-wrap:wrap}.brand{display:none}
+  .bar{left:8px;right:8px;max-width:calc(100vw - 16px);bottom:10px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
 </head>
 <body>
-<canvas id="cv" aria-label="3D 실습판"></canvas>
-<header class="brand"><b>idc<em>labs</em></b><i>/</i><span>3D 실습실</span></header>
-<nav class="pills" id="pills" aria-label="실습 선택"></nav>
+
+<canvas id="cv" aria-label="서버실 3D 디오라마"></canvas>
+<div class="brand"><b>idc<em>labs</em></b><i>/</i><span>서버 증설</span></div>
+<div class="clock"><span>WO<b>24113</b></span><span class="on">시각<b id="clk">22:06</b></span><span>위치<b>R07 · U10–11</b></span></div>
 <aside class="lesson" id="lesson"></aside>
 <aside class="instr" id="instr"></aside>
-<div class="bar" id="bar"></div>
-<div class="foot">드래그 = 화면 돌리기 · 휠 = 확대 · 핀에서 핀으로 드래그 = 선 연결 · 선을 탭 = 제거</div>
-<a class="walk" href="walk.html">걸어다니는 현장 실습 →</a>
-<div id="toast" role="status"></div>
-<script src="vendor/three.min.js"></script>
-<script src="labs/labs.js"></script>
+<div class="bar">
+  <button class="btn" id="prev">이전</button>
+  <button class="wif" id="wif" aria-pressed="false"><span class="tg"></span><span><small>만약에</small><br><span id="wifT"></span></span></button>
+  <button class="btn pri" id="done">이 단계 완료</button>
+</div>
+<div class="hint">드래그 = 돌려 보기 · 휠 = 확대 · 주황 말풍선 물체를 누르면 작업합니다</div>
+<div class="mock">모든 값은 가상 · <a href="walk.html" style="color:inherit">걸어다니는 현장 실습 →</a></div>
+<div id="bubs"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const T=THREE, $=id=>document.getElementById(id);
+const cv=$('cv');
+const R=new T.WebGLRenderer({canvas:cv,antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio||1,2)); R.outputEncoding=T.sRGBEncoding;
+R.shadowMap.enabled=true; R.shadowMap.type=T.PCFSoftShadowMap;
+R.toneMapping=T.ACESFilmicToneMapping; R.toneMappingExposure=1.05;
+const scene=new T.Scene();
+const cam=new T.PerspectiveCamera(32,1,0.1,100);
+
+/* 배경: 따뜻한 어둠 */
+(function(){const c=document.createElement('canvas');c.width=16;c.height=512;const g=c.getContext('2d');const gr=g.createLinearGradient(0,0,0,512);gr.addColorStop(0,'#3a362f');gr.addColorStop(1,'#1d1c19');g.fillStyle=gr;g.fillRect(0,0,16,512);const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;scene.background=t;})();
+
+scene.add(new T.HemisphereLight(0xfff3e0,0x3b352d,0.75));
+const sun=new T.DirectionalLight(0xffefd6,1.25); sun.position.set(4,8,6); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-6,right:6,top:6,bottom:-6,near:1,far:25}); sun.shadow.bias=-0.0004; scene.add(sun);
+const fillL=new T.PointLight(0x9fc8ff,0.35,12); fillL.position.set(-3,2.5,2); scene.add(fillL);
+
+/* ---------- 도우미 ---------- */
+function cnv(w,h,f){const c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;t.anisotropy=8;return t;}
+const M=(c,o)=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.7,metalness:.05},o||{}));
+function box(p,w,h,d,mat,x,y,z){const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;p.add(m);return m;}
+function cyl(p,r,h,mat,x,y,z){const m=new T.Mesh(new T.CylinderGeometry(r,r,h,16),mat);m.position.set(x,y,z);m.castShadow=true;p.add(m);return m;}
+
+/* ---------- 텍스처 ---------- */
+const tFloor=cnv(256,256,(g,w,h)=>{g.fillStyle='#c9ccca';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.fillStyle=`rgba(0,0,0,${Math.random()*.04})`;g.fillRect(Math.random()*w,Math.random()*h,2,2);}g.strokeStyle='#8e9290';g.lineWidth=4;g.strokeRect(0,0,w,h);g.strokeStyle='rgba(255,255,255,.5)';g.lineWidth=1;g.strokeRect(4,4,w-8,h-8);});
+tFloor.wrapS=tFloor.wrapT=T.RepeatWrapping;
+const tPerf=cnv(256,256,(g,w,h)=>{g.fillStyle='#b9c3c8';g.fillRect(0,0,w,h);g.fillStyle='#4c5960';for(let y=20;y<h-12;y+=13)for(let x=20;x<w-12;x+=13){g.beginPath();g.arc(x,y,3.6,0,7);g.fill();}g.strokeStyle='#7f8a8f';g.lineWidth=4;g.strokeRect(0,0,w,h);});
+const tSlab=cnv(512,64,(g,w,h)=>{g.fillStyle='#24221f';g.fillRect(0,0,w,h);g.fillStyle='#9fa3a1';g.fillRect(0,0,w,7);g.fillStyle='#55534e';for(let x=24;x<w;x+=56){g.fillRect(x,7,6,h-14);g.fillRect(x-10,h-10,26,6);g.fillRect(x-8,7,22,4);}g.strokeStyle='#e0a030';g.lineWidth=3;g.beginPath();g.moveTo(0,h*.6);for(let x=0;x<w;x+=20)g.lineTo(x,h*.6+Math.sin(x*.05)*3);g.stroke();});
+tSlab.wrapS=T.RepeatWrapping;
+const tWall=cnv(256,256,(g,w,h)=>{g.fillStyle='#dcd6cb';g.fillRect(0,0,w,h);for(let i=0;i<1400;i++){g.fillStyle=`rgba(80,70,50,${Math.random()*.05})`;g.fillRect(Math.random()*w,Math.random()*h,2,2);}});
+tWall.wrapS=tWall.wrapT=T.RepeatWrapping;
+const tDoor=cnv(256,512,(g,w,h)=>{g.fillStyle='#1c1f22';g.fillRect(0,0,w,h);g.fillStyle='#0a0b0c';for(let y=24;y<h-24;y+=9)for(let x=((y/9)%2?18:22);x<w-14;x+=9)g.fillRect(x,y,5,5);g.fillStyle='#2b3035';g.fillRect(0,0,w,14);g.fillRect(0,h-14,w,14);g.fillStyle='#9aa1a6';g.fillRect(w-24,h*.44,8,64);});
+const tPost=cnv(32,512,(g,w,h)=>{g.fillStyle='#202326';g.fillRect(0,0,w,h);g.fillStyle='#08090a';for(let y=4;y<h;y+=12)g.fillRect(12,y,8,6);});
+function fTex(kind){return cnv(512,kind==='2u'?96:kind==='sto'?190:48,(g,w,h)=>{
+  const bg=kind==='sw'?'#2f3a44':kind==='blank'?'#1b1e21':'#2c2f33';g.fillStyle=bg;g.fillRect(0,0,w,h);
+  if(kind==='2u'||kind==='sto'){const rows=kind==='sto'?4:2;for(let r=0;r<rows;r++)for(let i=0;i<8;i++){const x=56+i*48,y=8+r*(h-16)/rows;g.fillStyle='#4a4f55';g.fillRect(x,y,42,(h-16)/rows-6);g.fillStyle='#16181a';g.fillRect(x+4,y+6,34,3);g.fillStyle=i%3?'#3fbf86':'#2b6f52';g.fillRect(x+34,y+4,4,3);}
+    g.fillStyle='#16181a';for(let y=10;y<h-10;y+=7)g.fillRect(10,y,36,3);g.fillStyle='#8d9399';g.font='600 13px monospace';g.fillText(kind==='sto'?'STOR':'SRV',w-60,h-12);g.fillStyle='#16181a';for(let y=10;y<h-10;y+=7)g.fillRect(w-62,y-30>0?y:10,0,0);}
+  if(kind==='sw'){g.fillStyle='#111';for(let i=0;i<24;i++){g.fillRect(40+i*17,8,13,12);g.fillRect(40+i*17,26,13,12);}g.fillStyle='#3fbf86';for(let i=0;i<14;i++)g.fillRect(43+i*17,6,4,2);g.fillStyle='#9fb8cc';g.font='600 11px monospace';g.fillText('TOR-SW',456,30);}
+  if(kind==='blank'){g.fillStyle='#24282c';for(let x=10;x<w;x+=12)g.fillRect(x,8,6,h-16);}
+  if(kind==='1u'){g.fillStyle='#4a4f55';for(let i=0;i<4;i++)g.fillRect(60+i*60,8,52,h-16);g.fillStyle='#3fbf86';g.fillRect(470,18,6,6);}
+  g.fillStyle='#9ba1a7';g.fillRect(0,0,8,h);g.fillRect(w-8,0,8,h);
+});}
+function newSrvTex(led){return cnv(512,96,(g,w,h)=>{g.fillStyle='#d7dbdf';g.fillRect(0,0,w,h);for(let i=0;i<8;i++){const x=70+i*44;g.fillStyle='#9aa2aa';g.fillRect(x,10,38,36);g.fillRect(x,52,38,36);g.fillStyle='#5b636b';g.fillRect(x+4,24,30,3);g.fillRect(x+4,66,30,3);}
+  g.fillStyle='#3a4048';for(let y=12;y<h-10;y+=6)g.fillRect(14,y,46,3);g.fillStyle='#2b3138';g.font='700 14px monospace';g.fillText('NX-2400',432,40);g.font='500 11px monospace';g.fillText('2U',470,60);
+  g.fillStyle=led||'#3b3f44';g.beginPath();g.arc(470,78,6,0,7);g.fill();g.fillStyle='#8a9299';g.fillRect(0,0,6,h);g.fillRect(w-6,0,6,h);});}
+function rearTex(){return cnv(512,96,(g,w,h)=>{g.fillStyle='#3a3e43';g.fillRect(0,0,w,h);g.fillStyle='#22262a';g.fillRect(20,10,110,76);g.fillRect(382,10,110,76);g.fillStyle='#111';g.fillRect(40,30,40,26);g.fillRect(402,30,40,26);g.fillStyle='#d9d2c5';g.font='600 12px monospace';g.fillText('PSU1',90,80);g.fillText('PSU2',452,80);for(let i=0;i<4;i++){g.fillStyle='#111';g.fillRect(170+i*44,30,34,26);}g.fillStyle='#e8d25a';g.fillRect(170,62,34,6);});}
+const tCard=cnv(512,256,(g,w,h)=>{g.fillStyle='#b48a58';g.fillRect(0,0,w,h);for(let i=0;i<200;i++){g.strokeStyle=`rgba(90,60,30,${Math.random()*.15})`;g.beginPath();const y=Math.random()*h;g.moveTo(0,y);g.lineTo(w,y+Math.random()*4);g.stroke();}
+  g.fillStyle='#c7a36f';g.fillRect(w/2-40,0,80,h);g.strokeStyle='#4b2f17';g.lineWidth=5;for(let i=0;i<2;i++){const x=60+i*60;g.beginPath();g.moveTo(x,170);g.lineTo(x,110);g.moveTo(x-16,128);g.lineTo(x,108);g.lineTo(x+16,128);g.stroke();}
+  g.fillStyle='#f4f1ea';g.fillRect(320,150,160,80);g.fillStyle='#222';for(let i=0;i<40;i++)g.fillRect(330+i*3.5,160,i%3?1.5:2.5,32);g.font='600 13px monospace';g.fillText('S/N JX7-4821-K',330,214);});
+const tPaper=cnv(256,340,(g,w,h)=>{g.fillStyle='#f7f4ec';g.fillRect(0,0,w,h);g.fillStyle='#1d1b18';g.font='700 20px sans-serif';g.fillText('작업지시서',20,40);g.font='600 14px monospace';g.fillText('WO-24113',20,66);g.fillStyle='#d9480f';g.fillRect(170,22,66,26);g.fillStyle='#fff';g.font='700 13px sans-serif';g.fillText('승인',186,40);g.fillStyle='#8a8578';for(let i=0;i<9;i++)g.fillRect(20,92+i*24,i%3===2?140:210,6);});
+function screenTex(state){return cnv(512,320,(g,w,h)=>{g.fillStyle='#0f1a17';g.fillRect(0,0,w,h);g.fillStyle='#d9d2c5';g.font='600 20px monospace';g.fillText('MONITORING',20,36);
+  const rows=[['R07-SRV-02','UP'],['R07-SRV-04','UP'],['R07-SRV-06','UP'],['R07-SRV-11',state]];rows.forEach((r,i)=>{const y=80+i*46;g.fillStyle='#1c2925';g.fillRect(20,y-26,472,38);g.fillStyle='#cfd6d2';g.font='500 18px monospace';g.fillText(r[0],34,y);const c=r[1]==='UP'?'#3fbf86':r[1]==='---'?'#6b7570':'#ff6f5c';g.fillStyle=c;g.fillRect(400,y-16,70,22);g.fillStyle='#0f1a17';g.font='700 15px monospace';g.fillText(r[1],412,y);});});}
+
+/* ---------- 방(디오라마) ---------- */
+const W=8.4,D=6.6;
+const room=new T.Group();scene.add(room);
+const floorMat=M(0xffffff,{map:tFloor,roughness:.85}); tFloor.repeat.set(W/0.6,D/0.6);
+const floor=box(room,W,0.05,D,floorMat,0,-0.025,0);
+const perf=new T.Mesh(new T.PlaneGeometry(4.8,1.2),M(0xffffff,{map:tPerf,roughness:.8}));tPerf.wrapS=tPerf.wrapT=T.RepeatWrapping;tPerf.repeat.set(8,2);perf.rotation.x=-Math.PI/2;perf.position.set(0,0.002,0.2);perf.receiveShadow=true;room.add(perf);
+const slabMat=M(0xffffff,{map:tSlab,roughness:.9});tSlab.repeat.set(4,1);
+box(room,W,0.5,0.04,slabMat,0,-0.3,D/2);box(room,0.04,0.5,D,slabMat,W/2,-0.3,0);
+box(room,W,0.5,D,M(0x1b1a18),0,-0.31,0).castShadow=false;
+const wallMat=M(0xffffff,{map:tWall,roughness:.95});tWall.repeat.set(4,2);
+const wallB=box(room,W,2.9,0.12,wallMat,0,1.45,-D/2-0.06);
+const wallL=box(room,0.12,2.9,D,wallMat,-W/2-0.06,1.45,0);
+box(room,W,0.12,0.14,M(0x6d6a63),0,0.06,-D/2+0.02);box(room,0.14,0.12,D,M(0x6d6a63),-W/2+0.02,0.06,0);
+/* 벽 디테일: 표지판·소화기·온습도계 */
+const sign=new T.Mesh(new T.PlaneGeometry(0.9,0.3),new T.MeshBasicMaterial({map:cnv(360,120,(g,w,h)=>{g.fillStyle='#1d2a3a';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='700 40px sans-serif';g.fillText('HALL B · ROW 3',20,62);g.font='500 22px monospace';g.fillStyle='#9fc8ff';g.fillText('COLD AISLE →',20,100);})}));
+sign.position.set(-1.6,2.3,-D/2+0.01);room.add(sign);
+cyl(room,0.08,0.45,M(0xc62d22,{roughness:.4}),-W/2+0.15,0.28,-1.2);cyl(room,0.03,0.08,M(0x222),-W/2+0.15,0.54,-1.2);
+const thermo=box(room,0.02,0.18,0.14,M(0xf4f1ea),-W/2+0.01,1.5,0.4);
+/* 케이블 트레이 */
+const tray=new T.Group();room.add(tray);
+for(const z of [-0.95,-0.55]) box(tray,4.4,0.03,0.03,M(0xe0a030,{metalness:.4,roughness:.4}),0,2.25,z);
+for(let x=-2.1;x<=2.1;x+=0.25) box(tray,0.03,0.02,0.42,M(0xe0a030,{metalness:.4,roughness:.4}),x,2.24,-0.75);
+for(const x of [-2,0,2]) box(tray,0.02,0.65,0.02,M(0x777),x,2.6,-0.75);
+
+/* ---------- 랙 ---------- */
+const RU=0.0445, rackH=2.0, uY=u=>0.08+(u-1)*RU;
+const racks={};
+let devRear;
+function makeRack(name,x,open){
+  devRear=devRear||M(0xffffff,{map:rearTex(),roughness:.5});
+  const g=new T.Group();g.position.set(x,0,-0.9);room.add(g);
+  const blk=M(0x16181a,{roughness:.55,metalness:.3}), post=M(0xffffff,{map:tPost,roughness:.5,metalness:.4});
+  box(g,0.6,0.05,1.0,blk,0,0.025,0);box(g,0.6,0.05,1.0,blk,0,rackH-0.025,0);
+  box(g,0.015,rackH,1.0,blk,-0.3,rackH/2,0);box(g,0.015,rackH,1.0,blk,0.3,rackH/2,0);
+  for(const px of [-0.26,0.26])for(const pz of [0.45,-0.45])box(g,0.035,rackH-0.1,0.035,post,px,rackH/2,pz);
+  const lab=new T.Mesh(new T.PlaneGeometry(0.22,0.07),new T.MeshBasicMaterial({map:cnv(160,52,(c,w,h)=>{c.fillStyle='#f4f1ea';c.fillRect(0,0,w,h);c.fillStyle='#1d1b18';c.font='700 30px monospace';c.fillText(name,26,38);})}));
+  lab.position.set(0,rackH+0.04,0.5);g.add(lab);
+  const dev=[[2,'2u'],[4,'2u'],[6,'2u'],[8,'blank'],[12,'blank'],[14,'1u'],[15,'1u'],[17,'sto'],[30,'blank'],[40,'sw']];
+  const fm={};const devs=[];
+  dev.forEach(([u,k])=>{const hU=k==='2u'?2:k==='sto'?4:1;fm[k]=fm[k]||fTex(k);const side=M(0x2a2d31,{metalness:.3,roughness:.5});
+    const m=box(g,0.48,hU*RU-0.003,0.8,[side,side,side,side,M(0xffffff,{map:fm[k],roughness:.55}),k==='blank'?M(0x1b1e21):devRear],0,uY(u)+hU*RU/2,0.02);devs.push(m);});
+  if(!open){const dm=M(0xffffff,{map:tDoor,roughness:.5,metalness:.2});box(g,0.6,rackH-0.04,0.02,dm,0,rackH/2,0.51);box(g,0.6,rackH-0.04,0.02,dm,0,rackH/2,-0.51);}
+  else{const hinge=new T.Group();hinge.position.set(-0.3,0,0.52);g.add(hinge);box(hinge,0.6,rackH-0.04,0.02,M(0xffffff,{map:tDoor,roughness:.5}),0.3,rackH/2,0);hinge.rotation.y=-1.85;}
+  racks[name]=g;return g;
+}
+['R05','R06','R07','R08','R09'].forEach((n,i)=>makeRack(n,(i-2)*0.62,n==='R07'));
+const R07=racks.R07;
+/* 뒤쪽 PDU */
+const pduA=box(R07,0.04,1.7,0.07,M(0xf08a2c,{roughness:.5}),-0.282,1.0,-0.4), pduB=box(R07,0.04,1.7,0.07,M(0x4fa8d9,{roughness:.5}),0.282,1.0,-0.4);
+box(R07,0.045,0.1,0.075,M(0x2a2d31),-0.282,1.9,-0.4);box(R07,0.045,0.1,0.075,M(0x2a2d31),0.282,1.9,-0.4);
+for(let i=0;i<12;i++){box(R07,0.01,0.03,0.025,M(0x0a0a0a),-0.26,0.3+i*0.12,-0.4);box(R07,0.01,0.03,0.025,M(0x0a0a0a),0.26,0.3+i*0.12,-0.4);}
+/* 목표 슬롯 표시 */
+const ghost=box(R07,0.5,2*RU,0.82,new T.MeshBasicMaterial({color:0xf27a3d,transparent:true,opacity:.35,depthWrite:false}),0,uY(10)+RU,0.02);ghost.castShadow=false;
+const rails=new T.Group();R07.add(rails);box(rails,0.02,0.03,0.92,M(0xb9c0c6,{metalness:.7,roughness:.3}),-0.245,uY(10)+0.015,0);box(rails,0.02,0.03,0.92,M(0xb9c0c6,{metalness:.7,roughness:.3}),0.245,uY(10)+0.015,0);
+
+/* ---------- 새 서버 ---------- */
+const server=new T.Group();
+const srvSide=M(0xb8bec4,{metalness:.5,roughness:.35});
+let srvFront=M(0xffffff,{map:newSrvTex(),roughness:.45});
+const srvBody=box(server,0.48,2*RU-0.003,0.75,[srvSide,srvSide,srvSide,srvSide,srvFront,M(0xffffff,{map:rearTex(),roughness:.5})],0,0,0);
+room.add(server);
+
+/* ---------- 카트·박스 ---------- */
+const cart=new T.Group();cart.position.set(-2.3,0,1.5);cart.rotation.y=0.35;room.add(cart);
+const steel=M(0x8c949a,{metalness:.6,roughness:.35});
+box(cart,1.0,0.03,0.6,steel,0,0.75,0);box(cart,1.0,0.03,0.6,steel,0,0.2,0);
+for(const x of [-0.48,0.48])for(const z of [-0.28,0.28]){box(cart,0.03,0.75,0.03,steel,x,0.43,z);cyl(cart,0.04,0.03,M(0x222),x,0.04,z).rotation.z=Math.PI/2;}
+box(cart,0.03,0.3,0.6,steel,-0.48,0.92,0);
+const carton=new T.Group();carton.position.set(0.05,0.77,0);cart.add(carton);
+const cardM=M(0xffffff,{map:tCard,roughness:.95}), cardPlain=M(0xb48a58,{roughness:.95});
+box(carton,0.62,0.22,0.5,[cardPlain,cardPlain,cardPlain,cardPlain,cardM,cardPlain],0,0.11,0);
+const flapL=new T.Group();flapL.position.set(-0.31,0.22,0);carton.add(flapL);box(flapL,0.31,0.008,0.5,cardPlain,0.155,0,0);
+const flapR=new T.Group();flapR.position.set(0.31,0.22,0);carton.add(flapR);box(flapR,0.31,0.008,0.5,cardPlain,-0.155,0,0);
+const kit=new T.Group();cart.add(kit);box(kit,0.7,0.03,0.08,M(0xb9c0c6,{metalness:.7,roughness:.3}),0,0.235,0.15);box(kit,0.7,0.03,0.08,M(0xb9c0c6,{metalness:.7,roughness:.3}),0,0.235,0.05);
+for(let i=0;i<2;i++){const coil=new T.Mesh(new T.TorusGeometry(0.07,0.012,8,24),M(0x1d1d1d));coil.rotation.x=Math.PI/2;coil.position.set(-0.25+i*0.18,0.23,-0.15);kit.add(coil);}
+
+/* ---------- 작업대 ---------- */
+const bench=new T.Group();bench.position.set(2.5,0,1.7);bench.rotation.y=-0.25;room.add(bench);
+const wood=M(0x8d6a49,{roughness:.7});
+box(bench,1.6,0.05,0.7,wood,0,0.75,0);for(const x of [-0.75,0.75])for(const z of [-0.3,0.3])box(bench,0.05,0.75,0.05,M(0x3b3f44),x,0.375,z);
+box(bench,1.5,0.03,0.6,M(0x3b3f44),0,0.25,0);
+const clip=new T.Group();clip.position.set(-0.45,0.78,0.05);clip.rotation.y=0.25;bench.add(clip);
+box(clip,0.26,0.01,0.34,M(0x6b4f33),0,0,0);const paper=new T.Mesh(new T.PlaneGeometry(0.23,0.3),M(0xffffff,{map:tPaper,roughness:.9}));paper.rotation.x=-Math.PI/2;paper.position.y=0.007;clip.add(paper);box(clip,0.08,0.02,0.03,M(0x9aa1a6,{metalness:.7}),0,0.01,-0.16);
+const lap=new T.Group();lap.position.set(0.25,0.775,0);bench.add(lap);
+box(lap,0.42,0.02,0.3,M(0x2b2f33,{metalness:.4}),0,0,0.02);
+let scrMat=new T.MeshBasicMaterial({map:screenTex('---')});
+const lid=new T.Group();lid.position.set(0,0.01,-0.13);lid.rotation.x=-0.25;lap.add(lid);box(lid,0.42,0.28,0.012,M(0x2b2f33,{metalness:.4}),0,0.14,0);
+const scr=new T.Mesh(new T.PlaneGeometry(0.39,0.25),scrMat);scr.position.set(0,0.14,0.007);lid.add(scr);
+box(bench,0.22,0.12,0.16,M(0xe8e2d5),0.62,0.84,-0.1);box(bench,0.18,0.02,0.02,M(0x1d1b18),0.62,0.9,-0.02);
+const tb=box(bench,0.3,0.12,0.16,M(0x9b2a1f,{roughness:.45}),-0.05,0.84,-0.22);
+
+/* ---------- 케이블·공기 ---------- */
+const cableG=new T.Group();R07.add(cableG);
+function tube(pts,col,r){const c=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(...p)));const m=new T.Mesh(new T.TubeGeometry(c,40,r||0.012,8),M(col,{roughness:.5}));m.castShadow=true;cableG.add(m);return m;}
+const flow=[];const flowG=new T.Group();R07.add(flowG);
+for(let i=0;i<14;i++){const m=new T.Mesh(new T.ConeGeometry(0.025,0.07,10),new T.MeshBasicMaterial({color:0x5fb3e6,transparent:true,opacity:.9}));flowG.add(m);flow.push({m,t:i/14,x:(i%7-3)*0.06});}
+
+/* ---------- 단계 ---------- */
+const STEPS=[
+ {t:'작업지시서 확인',d:'작업대의 작업지시서를 집어 들고 승인 상태와 범위를 확인합니다. 승인 없이 시작한 작업은 현장에서 바로 멈춥니다.',
+  why:'한 서버실에 여러 고객 장비가 같이 돌아갑니다. 승인된 시간·위치·범위를 벗어난 작업은 남의 서비스를 건드릴 수 있어서, 승인된 작업지시서가 모든 작업의 출발점입니다.',
+  cam:[0.95,0.95,6.8,[2.4,0.8,1.6]], hot:()=>clip, wif:'승인 전에 시작하면?',
+  rows:w=>[['작업 번호','WO-24113'],['변경 승인',w?'대기 중 → 작업 중단':'승인 완료',w?'bad':'ok'],['위치','R07 · U10–11'],['작업 시간','22:00 – 24:00'],['롤백','서버 제거 · 포트 원복']],
+  note:'작업 전에 보는 것: 승인 · 위치 · 시간 · 되돌리는 방법',
+  bub:w=>[[clip,[0,0.12,0],w?'변경 미승인 · 작업 중단':'작업지시서 · 눌러서 확인',w?'bad':'tap']]},
+ {t:'입고 검수',d:'카트 위 박스를 열고 서버 라벨의 시리얼을 입고서와 대조합니다. 레일 키트와 전원 코드 2개를 확인하고 자산 라벨을 붙입니다.',
+  why:'잘못 온 장비를 달면 자산·계약 기록이 꼬이고, 다른 고객 장비를 설치하는 사고가 됩니다. 설치 전 대조가 가장 싸게 실수를 잡는 방법입니다.',
+  cam:[-0.55,0.9,6.4,[-2.3,0.85,1.5]], hot:()=>carton, wif:'시리얼이 입고서와 다르면?',
+  rows:w=>[['입고서 S/N','JX7-4821-K'],['장비 라벨 S/N',w?'JX7-4812-K':'JX7-4821-K',w?'bad':'ok'],['레일 키트','2 / 2','ok'],['전원 코드','2 / 2','ok'],['무게','24.6 kg (2인 운반)']],
+  note:'박스 외관 → S/N 대조 → 구성품 → 자산 라벨',
+  bub:w=>[[carton,[0,0.45,0],w?'S/N 불일치 · 설치 보류':'박스 열기 · S/N 대조',w?'bad':'tap']]},
+ {t:'설치 위치·용량 확인',d:'R07의 U10–11이 비었는지, PDU A/B에 여유가 있는지, TOR 스위치 포트가 비었는지 확인합니다. 한쪽 전원만 남아도 80% 아래여야 합니다.',
+  why:'공간(U)·전력·냉각·포트를 각각 따져서 가장 빠듯한 것이 한계입니다. 전력은 A/B 중 한쪽만 남았을 때가 기준이라, 정전 때도 차단기가 내려가지 않습니다.',
+  cam:[0.35,1.05,7.2,[0,1.0,-0.6]], hot:()=>ghost, wif:'A 전원이 끊기면?',
+  rows:w=>[['빈 공간','U10–11 · 2U','ok'],['서버 소비 전력','450 W ≈ 2.0 A'],['TOR 포트','Te1/0/14 비어 있음','ok'],['판정',w?'B 혼자 10.0A · 63% → 가능':'증설 가능',w?'warn':'ok']],
+  bars:w=>w?[['PDU-A',0,'입력 OFF','#6b655a'],['PDU-B',10/16,'10.0A · 63%','#f2b44a']]:[['PDU-A',5.1/16,'5.1A · 32%','#3fbf86'],['PDU-B',4.9/16,'4.9A · 31%','#3fbf86']],
+  note:'정격 16A · 주황 선 = 80% 기준 · 서버 추가 후 값',
+  bub:w=>[[ghost,[0,0.08,0.45],'U10–11 · 눌러서 확인','tap']]},
+ {t:'레일 설치·서버 장착',d:'U10–11에 레일을 앞뒤로 고정하고, 두 사람이 서버를 들어 레일에 밀어 넣습니다. 서버 앞면이 콜드 아일(파란 타공 타일)을 봐야 합니다.',
+  why:'서버 팬은 앞에서 빨아들여 뒤로 내보냅니다. 거꾸로 달면 뜨거운 바람을 차가운 통로에 뿜어서 옆 서버들까지 데웁니다.',
+  cam:[0.6,1.1,5.2,[0,0.6,-0.3]], hot:()=>srvBody, wif:'서버를 거꾸로 꽂으면?',
+  rows:w=>[['레일','U10–11 고정','ok'],['서버 방향',w?'뒤집힘 (배기 → 콜드 아일)':'앞면 → 콜드 아일',w?'bad':'ok'],['옆 서버 입구 온도',w?'31 ℃':'24 ℃',w?'bad':'ok'],['권장 입구 온도','18 – 27 ℃']],
+  note:'파란 화살표 = 차가운 공기 · 빨간 화살표 = 뜨거운 공기',
+  bub:w=>[[srvBody,[0,0.08,0.4],w?'거꾸로 장착 · 뜨거운 공기 역류':'서버 밀어 넣기',w?'bad':'tap']]},
+ {t:'전원·광 케이블 연결',d:'랙 뒤로 돌아가 PSU1은 PDU-A(주황), PSU2는 PDU-B(파랑)에 꽂습니다. 광 케이블은 TOR 스위치 Te1/0/14로 올리고 양 끝에 라벨을 붙입니다.',
+  why:'전원을 두 줄 받는 이유는 한 줄이 끊겨도 버티기 위해서입니다. 케이블 라벨은 새벽 장애 때 다른 엔지니어가 선을 찾게 해 줍니다.',
+  cam:[3.08,1.05,3.3,[0,0.62,-1.35]], hot:()=>pduB, wif:'두 PSU를 같은 PDU에 꽂으면?',
+  rows:w=>[['PSU1','→ PDU-A','ok'],['PSU2',w?'→ PDU-A':'→ PDU-B',w?'bad':'ok'],['이중화',w?'없음 (A 장애 = 서버 다운)':'A/B 분리',w?'bad':'ok'],['광 케이블','Te1/0/14','ok'],['라벨','2 / 2','ok']],
+  note:'뒤에서 본 모습 · 주황 = A 전원 · 파랑 = B 전원 · 노랑 = 광',
+  bub:w=>[[pduA,[0,-0.2,0],'PDU-A','none'],[pduB,[0,-0.35,0],w?'PSU2도 A에 꽂힘 · 이중화 없음':'PSU2 → PDU-B',w?'bad':'tap']]},
+ {t:'전원 투입·상태 점검',d:'앞으로 돌아와 전원 버튼을 누르고 부팅 자가 점검(POST)이 끝나길 기다립니다. 전면 LED와 원격 관리 화면(BMC)에서 숫자로 확인합니다.',
+  why:'켜졌다고 끝이 아닙니다. 전원 한쪽이 빠진 채 켜져도 겉보기엔 정상이라, 관리 화면의 숫자로 확인해야 잡힙니다.',
+  cam:[0.25,1.0,3.4,[0,0.55,-0.2]], hot:()=>srvBody, wif:'PSU 하나가 덜 꽂혔다면?',
+  rows:w=>[['POST','완료','ok'],['PSU',w?'1 / 2 · PSU2 입력 없음':'2 / 2',w?'warn':'ok'],['입구 온도','24 ℃','ok'],['팬','6 / 6 정상','ok'],['전면 LED',w?'주황':'초록',w?'warn':'ok']],
+  note:'BMC = 서버 안의 작은 관리용 컴퓨터',
+  bub:w=>[[srvBody,[0.19,0.03,0.4],w?'LED 주황 · 이중화 손실':'전원 ON · LED 초록',w?'warn':'tap']]},
+ {t:'관제 등록·완료 보고',d:'작업대 노트북에서 관제 시스템에 새 서버를 등록하고 수집이 되는지 봅니다. 자산 DB 위치를 갱신하고 작업 완료를 보고합니다.',
+  why:'관제에 없는 장비는 죽어도 아무도 모릅니다. 등록과 알람 확인까지가 설치 작업의 마지막 단계입니다.',
+  cam:[0.75,0.9,4.8,[2.6,0.85,1.6]], hot:()=>scr, wif:'관제 등록을 빠뜨리면?',
+  rows:w=>[['관제 등록',w?'누락':'R07-SRV-11',w?'bad':'ok'],['ping','0.4 ms',w?'':'ok'],['SNMP 수집',w?'없음':'정상',w?'bad':'ok'],['자산 DB','R07 · U10–11','ok'],['완료 보고',w?'보류':'전송',w?'warn':'ok']],
+  note:'알람이 실제로 오는지까지 확인해야 끝',
+  bub:w=>[[scr,[0,0.16,0],w?'미등록 · 장애가 나도 알람 없음':'관제 등록 · 수집 정상',w?'bad':'tap']]}
+];
+const CLK=['22:06','22:14','22:23','22:38','22:51','23:04','23:17'];
+let cur=0, wif=false, done=STEPS.map(()=>false);
+
+/* ---------- UI ---------- */
+function renderLesson(){
+  const s=STEPS[cur];
+  $('lesson').innerHTML=`<div class="kick"><span>WO-24113 · 서버 1대 증설</span><b>0${cur+1} / 07</b></div><h1>${s.t}</h1><p class="desc">${s.d}</p>
+  <ol>${STEPS.map((x,i)=>`<li tabindex="0" data-i="${i}" class="${i===cur?'cur':done[i]?'done':''}"><span class="n">${String(i+1).padStart(2,'0')}</span><span><span class="t">${x.t}</span></span></li>`).join('')}</ol>
+  <details class="why"><summary>왜 이렇게 할까요</summary><p>${s.why}</p></details>
+  <button class="next" id="nx">${cur<6?'다음: '+STEPS[cur+1].t+' →':'처음부터 다시 ↺'}</button>`;
+  $('nx').onclick=()=>go(cur<6?cur+1:0);
+  $('lesson').querySelectorAll('li').forEach(li=>{li.onclick=()=>go(+li.dataset.i);li.onkeydown=e=>{if(e.key==='Enter')go(+li.dataset.i);};});
+}
+function renderInstr(){
+  const s=STEPS[cur];
+  const bars=s.bars?`<div class="bars">${s.bars(wif).map(b=>`<div><span>${b[0]}</span><i><b style="width:${b[1]*100}%;background:${b[3]}"></b></i><span>${b[2]}</span></div>`).join('')}</div>`:'';
+  $('instr').innerHTML=`<h2>INSTRUMENTS · ${String(cur+1).padStart(2,'0')}</h2>${bars}${s.rows(wif).map(r=>`<div class="row"><span>${r[0]}</span><span class="${r[2]||''}">${r[1]}</span></div>`).join('')}<p class="note">${s.note}</p>`;
+}
+const bubEls=[];
+function renderBubs(){
+  $('bubs').innerHTML='';bubEls.length=0;
+  STEPS[cur].bub(wif).forEach(b=>{const el=document.createElement('div');el.className='bub'+(b[3]==='tap'?' tap':'');const c=b[3]==='bad'?'#ff6f5c':b[3]==='warn'?'#f2b44a':b[3]==='ok'?'#3fbf86':'#f1ebdf';el.style.setProperty('--c',c);el.innerHTML=`<div>${b[2]}</div><i></i>`;$('bubs').appendChild(el);bubEls.push({el,obj:b[0],off:new T.Vector3(...b[1])});});
+}
+function render(){
+  renderLesson();renderInstr();renderBubs();
+  $('wifT').textContent=STEPS[cur].wif;$('wif').setAttribute('aria-pressed',wif);
+  $('prev').disabled=cur===0;$('done').textContent=done[cur]?'완료됨 ✓':'이 단계 완료';
+  $('clk').textContent=CLK[cur];
+  applyScene();
+}
+function go(i){cur=i;wif=false;const c=STEPS[i].cam;goal={az:c[0],pol:c[1],dist:c[2],t:new T.Vector3(...c[3])};render();}
+$('prev').onclick=()=>cur>0&&go(cur-1);
+$('wif').onclick=()=>{wif=!wif;render();};
+$('done').onclick=()=>{done[cur]=true;if(cur<6)go(cur+1);else render();};
+
+/* ---------- 단계별 장면 ---------- */
+let srvTarget=new T.Vector3(), srvRot=0;
+function applyScene(){
+  const s=cur, w=wif;
+  // 박스
+  flapL.rotation.z=s>=1?2.3:0; flapR.rotation.z=s>=1?-2.3:0;
+  kit.visible=s<=2;
+  // 서버 위치
+  const inCart=s<=2;
+  if(inCart){ server.visible=s>=1; const p=new T.Vector3(0.05,0.77+(s>=1?0.27:0.08),0); cart.localToWorld(p); srvTarget.copy(p); srvRot=cart.rotation.y; }
+  else { server.visible=true; const p=new T.Vector3(0,uY(10)+RU,s===3?0.32:0.06); R07.localToWorld(p); srvTarget.copy(p); srvRot=(s===3&&w)?Math.PI:0; }
+  ghost.visible=s===2; rails.visible=s>=3;
+  // 케이블
+  cableG.clear();
+  if(s>=4){
+    const y=uY(10)+RU, z=-0.36;
+    tube([[-0.17,y,z],[-0.17,y,z-0.09],[-0.24,y+0.03,-0.42],[-0.262,y+0.06,-0.4]],0xf08a2c,0.016);
+    if(!(s===5&&w)){
+      if(s===4&&w) tube([[0.17,y,z],[0.17,y,z-0.1],[0,y-0.08,-0.45],[-0.24,y-0.02,-0.42],[-0.262,y-0.06,-0.4]],0xf08a2c,0.016);
+      else tube([[0.17,y,z],[0.17,y,z-0.09],[0.24,y+0.03,-0.42],[0.262,y+0.06,-0.4]],0x4fa8d9,0.016);
+    } else tube([[0.17,y,z-0.03],[0.17,y-0.06,z-0.1],[0.12,y-0.25,z-0.12]],0x4fa8d9,0.016);
+    tube([[-0.03,y,z],[-0.03,y+0.05,-0.42],[0.0,uY(30),-0.42],[0,uY(40),-0.4]],0xe8d25a,0.006);
+  }
+  // LED·전면
+  const led=s>=5?((s===5&&w)?'#f2b44a':'#3fbf86'):null;
+  srvFront.map=newSrvTex(led);srvFront.needsUpdate=true;
+  srvFront.emissive=new T.Color(led?0x111111:0);
+  // 공기
+  flowG.visible=s===3||s===5;
+  // 관제 화면
+  scr.material.map=screenTex(s>=6?(w?'NONE':'UP'):'---');scr.material.needsUpdate=true;
+  // 문서 강조
+  paper.material.emissive=new T.Color(s===0?0x2a1a08:0);
+}
+
+/* ---------- 카메라 ---------- */
+const view={az:0.6,pol:1.0,dist:9.5,t:new T.Vector3(0,0.6,0)};
+let goal={az:0.55,pol:0.98,dist:7.6,t:new T.Vector3(0,0.7,0)};
+function placeCam(){const s=Math.sin(view.pol);cam.position.set(view.t.x+view.dist*s*Math.sin(view.az),view.t.y+view.dist*Math.cos(view.pol),view.t.z+view.dist*s*Math.cos(view.az));cam.lookAt(view.t);}
+function resize(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;const sh=w>900?Math.min(150,(w-1100)/2+120):0;cam.setViewOffset(w,h,-sh,h>700?-10:0,w,h);cam.updateProjectionMatrix();}
+addEventListener('resize',resize);
+let drag=null;const ray=new T.Raycaster(),nd=new T.Vector2();
+function hit(e){const r=cv.getBoundingClientRect();nd.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(nd,cam);const tgt=STEPS[cur].hot();const objs=[];tgt.traverse(o=>{if(o.isMesh)objs.push(o);});return ray.intersectObjects(objs,false).length>0;}
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,m:0};goal=null;});
+cv.addEventListener('pointermove',e=>{if(!drag){cv.classList.toggle('hot',hit(e));return;}const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.m+=Math.abs(dx)+Math.abs(dy);view.az-=dx*0.006;view.pol=Math.max(0.35,Math.min(1.42,view.pol-dy*0.005));});
+cv.addEventListener('pointerup',e=>{if(drag&&drag.m<6&&hit(e)){done[cur]=true;render();}drag=null;});
+cv.addEventListener('wheel',e=>{e.preventDefault();goal=null;view.dist=Math.max(1.4,Math.min(14,view.dist*(1+Math.sign(e.deltaY)*0.08)));},{passive:false});
+
+/* ---------- 루프 ---------- */
+let last=performance.now();const v=new T.Vector3();
+function loop(now){
+  const dt=Math.min((now-last)/1000,0.1);last=now;const k=1-Math.pow(0.002,dt);
+  if(goal){view.az+=(goal.az-view.az)*k;view.pol+=(goal.pol-view.pol)*k;view.dist+=(goal.dist-view.dist)*k;view.t.lerp(goal.t,k);}
+  server.position.lerp(srvTarget,k*0.9);server.rotation.y+=(srvRot-server.rotation.y)*k;
+  // 카메라 쪽 벽은 숨기기(단면 보기)
+  wallB.visible=cam.position.z>-D/2+0.5; wallL.visible=cam.position.x>-W/2+0.5; sign.visible=wallB.visible;
+  // 공기 화살표
+  const rev=cur===3&&wif;
+  flow.forEach(f=>{f.t=(f.t+dt*0.45)%1;const z=rev?0.38+f.t*0.9:1.25-f.t*0.85;f.m.position.set(f.x,uY(10)+RU+(f.t*0.02),z);f.m.rotation.x=rev?Math.PI/2:-Math.PI/2;f.m.material.color.setHex(rev?0xff6f5c:0x5fb3e6);f.m.material.opacity=Math.sin(f.t*Math.PI)*0.9;});
+  // 강조 깜빡임
+  const pul=(Math.sin(now/260)+1)/2;
+  ghost.material.opacity=0.18+pul*0.3;
+  placeCam();R.render(scene,cam);
+  // 말풍선
+  const r=cv.getBoundingClientRect();
+  bubEls.forEach(b=>{b.obj.getWorldPosition(v);v.add(b.off).project(cam);const vis=v.z<1;b.el.style.display=vis?'flex':'none';b.el.style.left=((v.x+1)/2*r.width)+'px';b.el.style.top=((1-v.y)/2*r.height)+'px';});
+  requestAnimationFrame(loop);
+}
+resize();
+server.position.copy(new T.Vector3(-2.3,0.85,1.5));
+go(0);
+requestAnimationFrame(loop);
+window.__mock={go};
+})();
+</script>
 </body>
 </html>

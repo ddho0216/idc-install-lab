@@ -1,6 +1,6 @@
 // 실습실 자동 테스트: node tests/labs.js [URL]   (예: python3 -m http.server 8790 후 실행)
 const { chromium } = require('playwright');
-const URL = process.argv[2] || 'http://localhost:8790/index.html';
+const URL = process.argv[2] || 'http://localhost:8790/labs.html';
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
