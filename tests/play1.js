@@ -58,11 +58,14 @@ const OUT = process.env.OUT || '/tmp/play-';
   await connect('cord1', [-4.95, 0.3], 'psu1', [0.2, -4.0], 'PDU-A 3번', [0.5, -4.0]);
   await connect('cord2', [-4.95, 0.3], 'psu2', [-0.2, -4.0], 'PDU-B 3번', [-0.5, -4.0]); await shot('5-power');
   // 6 네트워크
-  await connect('cat6', [-4.95, 0.3], 'nic1', [0.2, -4.0], 'SW-ACC-01 Gi1/0/11', [0.8, -4.0]); await shot('6-net');
+  await connect('cat6', [-4.95, 0.3], 'nic1', [0.2, -4.0], 'SW-ACC-01 Te1/0/11', [0.8, -4.0]); await shot('6-net');
   // 7 부팅
   const bp = await p.evaluate(() => { const v = __g.S ? null : null; const b = __g.usables.find(u => u.userData.use && /서버 전원/.test(typeof u.userData.use.prompt === 'function' ? u.userData.use.prompt() : '')); const w = b.getWorldPosition(new THREE.Vector3()); return [w.x, w.y, w.z]; });
   await useAt(bp[0], bp[1], bp[2], [0.1, -1.7]); await wait(500); await shot('7-boot');
   // 감독관 검수
+  // 클램프 미터로 PDU-A 전류 측정
+  await grab('meter', [-6.0, -2.75]); await aimSlot('meter-A', [0.5, -4.3]); await wait(200);
+  console.log('meter toast:', await p.evaluate(() => [...document.querySelectorAll('.tt')].map(t => t.textContent).pop())); await p.evaluate(() => __g.dropHeld()); await wait(900);
   console.log('final:', JSON.stringify(await p.evaluate(() => __g.inspectList().map(x => x.id + ':' + x.state))));
   await p.evaluate(() => { __g.pos.set(-2.6, 0, 2.2); __g.lookAt(new THREE.Vector3(-2.6, 1.0, 3.2)); }); await wait(200); console.log('npc focus', await p.evaluate(() => JSON.stringify({ f: __g.focus && (__g.focus.obj.userData.use ? 'use:' + (typeof __g.focus.obj.userData.use.prompt === 'function' ? __g.focus.obj.userData.use.prompt() : __g.focus.obj.userData.use.prompt) : 'other'), hold: !!__g.hold, modal: __g.modal, pos: [__g.pos.x, __g.pos.z] }))); await p.evaluate(() => __g.primary()); await wait(300); await p.click('[data-a=inspect]'); await wait(500); await shot('8-inspect');
   console.log('errors', errs);

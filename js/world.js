@@ -3,7 +3,7 @@
   const G = window.G, T = G.T, U = G.U, V3 = G.V3, box = G.box, mat = G.mat;
   const RW = 0.6, RD = 1.0, ZC = -3.0, BASEY = 0.1, TOTALU = 42, EW = 0.482, FW = 1180;
   const W = G.W = { RW, RD, ZC, EW, ZF: ZC + RD / 2, ZR: ZC - RD / 2, RAILF: ZC + RD / 2 - 0.035, RAILR: ZC - RD / 2 + 0.035, RACKX: { R10: -1.3, R11: -0.65, R12: 0, R01: 0.65, R02: 1.3 }, TOTALU,
-    yOfU: u => BASEY + (u - 1) * U + U / 2, uOfY: y => Math.round((y - BASEY - U / 2) / U) + 1, ROOM: { x0: -7, x1: 7, z0: -5.6, z1: 6.6, h: 3.2 } };
+    yOfU: u => BASEY + (u - 1) * U + U / 2, uOfY: y => Math.round((y - BASEY - U / 2) / U) + 1, ROOM: { x0: -7, x1: 7, z0: -6.6, z1: 6.6, h: 3.2 } };
   const COL = { A: 0xd9654a, B: 0x4a8bd9, fiber: 0xe8c547 };
   W.COL = COL;
   const addCol = (x0, x1, z0, z1) => G.colliders.push({ x0, x1, z0, z1 });
@@ -71,8 +71,8 @@
       g.fillStyle = '#f2f2ee'; g.fillRect(1058, 22, 52, 56); g.fillStyle = '#222'; g.font = '700 9px sans-serif'; g.fillText((label || '').slice(0, 11), 1061, 36); g.font = '8px sans-serif'; g.fillText('S/N', 1061, 52); g.fillText((serial || '').slice(0, 11), 1061, 63); }); },
     serverRear(st) { return G.tex(FW, 100, (g, w, h) => { g.fillStyle = '#c9d0d6'; g.fillRect(0, 0, w, h); g.fillStyle = '#e0a030'; g.fillRect(0, 0, w, 3);
       [PORT.psu1[0], PORT.psu2[0]].forEach((cx, i) => { g.fillStyle = '#aeb6be'; g.fillRect(cx - 105, 16, 210, 70); g.fillStyle = st.cord && st.cord[i] ? '#d9654a' : '#20262b'; g.fillRect(cx - 28, 34, 56, 36); g.fillStyle = '#6a737d'; g.fillRect(cx - 18, 40, 6, 14); g.fillRect(cx + 12, 40, 6, 14); led(g, cx + 70, 22, st.power && st.cord && st.cord[i], '#2fbf71'); });
-      g.fillStyle = '#56606a'; g.font = '700 14px sans-serif'; g.fillText('PSU1', 40, 12); g.fillText('PSU2', 280, 12); g.fillText('NIC1', 624, 12); g.fillText('NIC2', 682, 12); g.fillText('MGMT', 750, 12);
-      [PORT.nic1[0], PORT.nic2[0], PORT.mgmt[0]].forEach((cx, i) => { g.fillStyle = '#20262b'; g.fillRect(cx - 22, 30, 44, 34); g.fillStyle = '#586068'; g.fillRect(cx - 17, 34, 34, 22); led(g, cx - 8, 70, st.nic && st.nic[i], '#2fbf71'); });
+      g.fillStyle = '#56606a'; g.font = '700 14px sans-serif'; g.fillText('PSU1', 40, 12); g.fillText('PSU2', 280, 12); g.fillText('SFP+1', 620, 12); g.fillText('SFP+2', 678, 12); g.fillText('MGMT', 750, 12);
+      [PORT.nic1[0], PORT.nic2[0], PORT.mgmt[0]].forEach((cx, i) => { if (i < 2) { g.fillStyle = '#8a949e'; g.fillRect(cx - 20, 28, 40, 38); g.fillStyle = '#0d1114'; g.fillRect(cx - 15, 33, 30, 26); g.fillStyle = '#e8b923'; g.fillRect(cx - 4, 36, 8, 8); } else { g.fillStyle = '#20262b'; g.fillRect(cx - 22, 30, 44, 34); g.fillStyle = '#586068'; g.fillRect(cx - 17, 34, 34, 22); } led(g, cx - 8, 70, st.nic && st.nic[i], '#2fbf71'); });
       for (let i = 0; i < 4; i++) { g.fillStyle = '#9aa3ab'; g.beginPath(); g.arc(880 + i * 60, 52, 22, 0, 7); g.fill(); g.fillStyle = '#4a525a'; g.beginPath(); g.arc(880 + i * 60, 52, 7, 0, 7); g.fill(); }
       g.fillStyle = '#f2f2ee'; g.fillRect(490, 22, 100, 56); g.fillStyle = '#222'; g.font = '700 11px sans-serif'; g.textBaseline = 'alphabetic'; g.fillText('S/N', 496, 40); g.fillText((st.serial || '').slice(0, 12), 496, 56); g.font = '9px sans-serif'; g.fillText('MADE FOR SIM', 496, 70); }); },
     switchRear(st) { return G.tex(FW, 100, (g, w, h) => { g.fillStyle = '#d6dce2'; g.fillRect(0, 0, w, h); g.fillStyle = '#e0a030'; g.fillRect(0, 0, w, 4); g.fillStyle = '#56606a'; g.font = '700 14px sans-serif'; g.textBaseline = 'top';
@@ -80,7 +80,7 @@
       [PORT.psu1[0], PORT.psu2[0]].forEach((cx, i) => { g.fillStyle = '#b2bac2'; g.fillRect(cx - 105, 22, 210, 70); g.fillStyle = st.cord && st.cord[i] ? '#d9654a' : '#2a3036'; g.fillRect(cx - 28, 40, 56, 34); g.fillStyle = '#6a737d'; g.fillRect(cx - 18, 46, 6, 14); g.fillRect(cx + 12, 46, 6, 14); led(g, cx + 76, 28, st.power && st.cord && st.cord[i], '#2fbf71'); });
       for (let i = 0; i < 3; i++) { g.fillStyle = '#9aa3ab'; g.beginPath(); g.arc(510 + i * 30, 58, 11, 0, 7); g.fill(); g.fillStyle = '#4a525a'; g.beginPath(); g.arc(510 + i * 30, 58, 4, 0, 7); g.fill(); }
       g.fillStyle = st.con ? '#4fa3d9' : '#20262b'; g.fillRect(606, 40, 20, 24);
-      for (let r = 0; r < 2; r++) for (let c = 0; c < 24; c++) { const x = 660 + c * 16.2, y = 28 + r * 31; g.fillStyle = '#20262b'; g.fillRect(x, y, 12, 22); g.fillStyle = '#4a525a'; g.fillRect(x + 2, y + 3, 8, 3); }
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 24; c++) { const x = 660 + c * 16.2, y = 28 + r * 31; if (st.sfp) { g.fillStyle = '#8a949e'; g.fillRect(x, y, 13, 23); g.fillStyle = '#0d1114'; g.fillRect(x + 2, y + 3, 9, 17); } else { g.fillStyle = '#20262b'; g.fillRect(x, y, 12, 22); g.fillStyle = '#4a525a'; g.fillRect(x + 2, y + 3, 8, 3); } }
       [PORT.t1[0], PORT.t2[0]].forEach((cx, i) => { g.fillStyle = '#20262b'; g.fillRect(cx - 14, 30, 28, 30); g.fillStyle = '#586068'; g.fillRect(cx - 10, 34, 20, 22); g.fillStyle = st.up && st.up[i] ? '#2fbf71' : (st.upBad && st.upBad[i] ? '#d9654a' : '#4a525a'); g.fillRect(cx - 8, 66, 16, 8); });
       g.fillStyle = st.sys === 'ok' ? '#2fbf71' : st.sys === 'boot' ? '#e0a030' : '#8a929b'; g.beginPath(); g.arc(590, 20, 5, 0, 7); g.fill(); }); },
     switchFront(serial) { return G.tex(FW, 100, (g, w, h) => {
@@ -98,7 +98,7 @@
   W.makeDevice = function (type, o) {
     o = o || {}; const D = type === 'server' ? 0.62 : 0.44, H = U * 0.92, g = new T.Group();
     const body = new T.Mesh(new T.BoxGeometry(EW, H, D), mat(type === 'server' ? 0x4a525a : 0x9aa3ab, 0.55, 0.3)); body.castShadow = true; body.receiveShadow = true; g.add(body);
-    const st = { serial: o.serial || '', cord: [false, false], power: false, nic: [false, false, false], up: [false, false], upBad: [false, false], con: false, sys: 'off' };
+    const st = { sfp: !!o.sfp, serial: o.serial || '', cord: [false, false], power: false, nic: [false, false, false], up: [false, false], upBad: [false, false], con: false, sys: 'off' };
     const frontT = type === 'server' ? W.faceTex.serverFront(o.label || 'SRV-NEW-01', o.serial) : W.faceTex.switchFront(o.serial);
     const front = new T.Mesh(new T.PlaneGeometry(EW, H), new T.MeshBasicMaterial({ map: frontT })); front.position.z = D / 2 + 0.002; g.add(front);
     const rear = new T.Mesh(new T.PlaneGeometry(EW, H), new T.MeshBasicMaterial({ map: type === 'server' ? W.faceTex.serverRear(st) : W.faceTex.switchRear(st) })); rear.position.z = -D / 2 - 0.002; rear.rotation.y = Math.PI; g.add(rear);
@@ -172,50 +172,88 @@
     clock.position.set(R.x0 + 0.03, 2.4, -1.6); clock.rotation.y = Math.PI / 2; sc.add(clock);
     const wb = new T.Mesh(new T.PlaneGeometry(1.7, 0.95), new T.MeshBasicMaterial({ map: G.tex(680, 380, (g, w, h) => { g.fillStyle = '#f8f9fa'; g.fillRect(0, 0, w, h); g.strokeStyle = '#8a949e'; g.lineWidth = 10; g.strokeRect(0, 0, w, h); g.fillStyle = '#1f5fbf'; g.font = '700 34px sans-serif'; g.fillText('오늘의 작업 · R12 랙', 28, 56); g.fillStyle = '#333'; g.font = '500 26px sans-serif'; ['09:00 입고 확인', '10:00 PDU / 레일 설치', '13:00 장비 장착·배선', '16:00 관제 연동 확인', '17:00 티켓 마감'].forEach((t, i) => g.fillText('• ' + t, 28, 110 + i * 46)); g.fillStyle = '#c23a26'; g.font = '700 24px sans-serif'; g.fillText('※ 전원은 반드시 A/B 분리', 28, 350); }) }));
     wb.position.set(R.x1 - 0.03, 1.6, -2.4); wb.rotation.y = -Math.PI / 2; sc.add(wb);
-    const tool = new T.Group(); tool.position.set(-5.5, 0, 0.5); const tb = box(0.5, 0.22, 0.24, 0xc23a26, 0.5); tb.position.y = 0.11; tool.add(tb); const tl = new T.Group(); tl.position.set(0, 0.22, -0.12); const tlm = box(0.5, 0.03, 0.26, 0x8a1f10, 0.5); tlm.position.set(0, 0.015, 0.12); tl.add(tlm); tool.add(tl); W.toolLid = tl; const th = box(0.3, 0.03, 0.03, 0x2a2f36, 0.4, 0.5); th.position.y = 0.29; tool.add(th); [-0.2, 0.2].forEach(x => { const lt = box(0.04, 0.04, 0.03, 0xb0b8c0, 0.3, 0.8); lt.position.set(x, 0.2, 0.135); tool.add(lt); }); sc.add(tool);
+    W.buildToolbox(); W.buildStepladder();
     const bin = new T.Mesh(new T.CylinderGeometry(0.17, 0.14, 0.42, 20), mat(0x2f6f4a, 0.7)); bin.position.set(1.3, 0.21, 6.2); bin.castShadow = true; sc.add(bin);
-    const lad = new T.Group(); lad.position.set(R.x1 - 0.25, 0, -4.6); lad.rotation.z = -0.12; [-0.2, 0.2].forEach(x => { const r = box(0.04, 2.0, 0.04, 0xd9a21e, 0.5, 0.4); r.position.set(x, 1.0, 0); lad.add(r); }); for (let i = 0; i < 7; i++) { const rg = box(0.4, 0.03, 0.04, 0xd9a21e, 0.5, 0.4); rg.position.set(0, 0.25 + i * 0.27, 0); lad.add(rg); } sc.add(lad);
     const es = new T.Group(); es.position.set(-1.0, 1.25, R.z1 - 0.06); es.add(box(0.2, 0.2, 0.08, 0xf2c200, 0.6)); const bt = new T.Mesh(new T.CylinderGeometry(0.055, 0.055, 0.05, 16), mat(0xc23a26, 0.4)); bt.rotation.x = Math.PI / 2; bt.position.z = 0.06; es.add(bt); const el = G.sprite('비상 정지', '#222', 0.45, 'rgba(255,255,255,.9)'); el.position.y = 0.2; es.add(el); sc.add(es);
     const perf = G.tex(64, 64, (g, w, h) => { g.fillStyle = '#9aa7b2'; g.fillRect(0, 0, w, h); g.fillStyle = '#4b5964'; for (let y = 6; y < h; y += 8) for (let x = 6; x < w; x += 8) { g.beginPath(); g.arc(x, y, 2.4, 0, 7); g.fill(); } });
   };
   /* ---------- 콜드 아일 / 핫 아일 (마주 보는 랙 두 줄) ---------- */
-  W.ROWB_Z = -0.2;
+  W.ROWB_Z = 1.0;   // 맞은편 랙 줄 중심 (앞면 z=0.5 → 콜드 아일 폭 3.0m)
   W.buildAisles = function () {
-    const sc = G.scene, mk = (w, h, d, c, o) => { const m = new T.Mesh(new T.BoxGeometry(w, h, d), new T.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.2, transparent: o != null, opacity: o == null ? 1 : o, depthWrite: o == null })); sc.add(m); return m; };
+    const sc = G.scene, AF = -2.5, BF = 0.5, CZ = (AF + BF) / 2, AW = BF - AF;
+    const mk = (w, h, d, c, o) => { const m = new T.Mesh(new T.BoxGeometry(w, h, d), new T.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.2, transparent: o != null, opacity: o == null ? 1 : o, depthWrite: o == null })); sc.add(m); return m; };
     const area = (x0, x1, z0, z1, c, op) => { const m = new T.Mesh(new T.PlaneGeometry(x1 - x0, z1 - z0), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: op, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0.004, (z0 + z1) / 2); sc.add(m); };
-    area(-1.95, 1.95, -2.5, -0.7, 0x2a78c8, 0.2); area(-1.95, 1.95, -5.55, -3.5, 0xc8553d, 0.18); area(-1.95, 1.95, 0.3, 2.4, 0xc8553d, 0.18);
+    area(-2.1, 2.1, AF, BF, 0x2a78c8, 0.2); area(-2.1, 2.1, -6.55, -3.5, 0xc8553d, 0.18); area(-2.1, 2.1, 1.5, 3.8, 0xc8553d, 0.18);
     const perf = G.tex(64, 64, (g, w, h) => { g.fillStyle = '#8fa6bb'; g.fillRect(0, 0, w, h); g.fillStyle = '#31475c'; for (let y = 6; y < h; y += 8) for (let x = 6; x < w; x += 8) { g.beginPath(); g.arc(x, y, 2.6, 0, 7); g.fill(); } g.strokeStyle = '#6c8399'; g.lineWidth = 3; g.strokeRect(1, 1, w - 2, h - 2); });
-    [-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].forEach(x => [-2.2, -1.6, -1.0].forEach(z => { const t = new T.Mesh(new T.PlaneGeometry(0.58, 0.58), new T.MeshStandardMaterial({ map: perf, roughness: 0.8 })); t.rotation.x = -Math.PI / 2; t.position.set(x, 0.007, z); t.receiveShadow = true; sc.add(t); }));
-    const floorText = (l1, l2, c, x, z, ry) => { const t = G.tex(1024, 200, (g, w, h) => { g.fillStyle = c; g.font = '700 84px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(l1, w / 2, 70); g.font = '600 46px sans-serif'; g.fillText(l2, w / 2, 148); }); const m = new T.Mesh(new T.PlaneGeometry(2.8, 0.55), new T.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.rotation.z = ry || 0; m.position.set(x, 0.009, z); sc.add(m); };
-    floorText('COLD AISLE · 콜드 아일', '찬 공기 18~27℃ · 장비 앞면으로 흡기', '#1f5f9e', 0, -1.6, 0); floorText('HOT AISLE · 핫 아일', '더운 공기 약 35℃ · 장비 뒷면으로 배기', '#a8402a', 0, -4.6, 0); floorText('HOT AISLE · 핫 아일', '더운 공기 약 35℃', '#a8402a', 0, 1.35, 0);
-    // 콜드 아일 봉쇄: 지붕 + 양옆 패널 + 출입문 틀
-    const roof = mk(3.7, 0.03, 1.9, 0x9fc9ea, 0.28); roof.position.set(0, 2.36, -1.6);
-    [[-2.5, 0], [-0.7, 0]].forEach(p => { const sp = mk(3.4, 0.24, 0.02, 0x9fc9ea, 0.3); sp.position.set(0, 2.24, p[0]); });
-    [[-1.84, 0], [1.84, 0]].forEach(p => { const x = p[0]; [-2.45, -0.75].forEach(z => { const po = mk(0.07, 2.36, 0.07, 0x5b6670); po.position.set(x, 1.18, z); }); const hd = mk(0.07, 0.07, 1.77, 0x5b6670); hd.position.set(x, 2.34, -1.6);
-      const lf = mk(0.03, 2.1, 0.45, 0x9fc9ea, 0.3); lf.position.set(x, 1.1, -2.25); const lf2 = mk(0.03, 2.1, 0.45, 0x9fc9ea, 0.3); lf2.position.set(x, 1.1, -0.95);
-      const sg = G.sprite('콜드 아일 출입구', '#1f5f9e', 0.9, 'rgba(255,255,255,.95)'); sg.position.set(x, 2.58, -1.6); sc.add(sg); });
-    // 핫 아일: 천장 환기구(회수) + 덕트 + 비닐 커튼
-    [[-4.5, 1.6], [1.35, 1.7]].forEach(p => { const gr = new T.Mesh(new T.BoxGeometry(3.2, 0.05, p[1]), new T.MeshStandardMaterial({ map: G.tex(128, 64, (g, w, h) => { g.fillStyle = '#7b3a2d'; g.fillRect(0, 0, w, h); g.fillStyle = '#c8553d'; for (let i = 0; i < 12; i++) g.fillRect(4 + i * 10.4, 5, 6, h - 10); }), roughness: 0.6 })); gr.position.set(0, 3.12, p[0]); sc.add(gr);
+    [-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].forEach(x => [-2.2, -1.6, -1.0, -0.4, 0.2].forEach(z => { const t = new T.Mesh(new T.PlaneGeometry(0.58, 0.58), new T.MeshStandardMaterial({ map: perf, roughness: 0.8 })); t.rotation.x = -Math.PI / 2; t.position.set(x, 0.007, z); t.receiveShadow = true; sc.add(t); }));
+    const floorText = (l1, l2, c, x, z) => { const t = G.tex(1024, 200, (g, w, h) => { g.fillStyle = c; g.font = '700 84px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(l1, w / 2, 70); g.font = '600 46px sans-serif'; g.fillText(l2, w / 2, 148); }); const m = new T.Mesh(new T.PlaneGeometry(3.0, 0.59), new T.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.009, z); sc.add(m); };
+    floorText('COLD AISLE · 콜드 아일', '찬 공기 18~27℃ · 장비 앞면으로 흡기', '#1f5f9e', 0, CZ); floorText('HOT AISLE · 핫 아일', '더운 공기 약 35℃ · 장비 뒷면으로 배기', '#a8402a', 0, -5.0); floorText('HOT AISLE · 핫 아일', '더운 공기 약 35℃', '#a8402a', 0, 2.6);
+    // 콜드 아일 봉쇄
+    const roof = mk(3.7, 0.03, AW + 0.1, 0x9fc9ea, 0.28); roof.position.set(0, 2.36, CZ);
+    [AF, BF].forEach(z => { const sp = mk(3.4, 0.24, 0.02, 0x9fc9ea, 0.3); sp.position.set(0, 2.24, z); });
+    [-1.84, 1.84].forEach(x => { [AF + 0.05, BF - 0.05].forEach(z => { const po = mk(0.07, 2.36, 0.07, 0x5b6670); po.position.set(x, 1.18, z); }); const hd = mk(0.07, 0.07, AW - 0.03, 0x5b6670); hd.position.set(x, 2.34, CZ);
+      [AF + 0.3, BF - 0.3].forEach(z => { const lf = mk(0.03, 2.1, 0.5, 0x9fc9ea, 0.3); lf.position.set(x, 1.1, z); });
+      const sg = G.sprite('콜드 아일 출입구', '#1f5f9e', 0.9, 'rgba(255,255,255,.95)'); sg.position.set(x, 2.58, CZ); sc.add(sg); });
+    // 핫 아일: 천장 환기구 + 덕트 + 비닐 커튼
+    [[-5.0, 2.6], [2.6, 1.9]].forEach(p => { const gr = new T.Mesh(new T.BoxGeometry(3.2, 0.05, p[1]), new T.MeshStandardMaterial({ map: G.tex(128, 64, (g, w, h) => { g.fillStyle = '#7b3a2d'; g.fillRect(0, 0, w, h); g.fillStyle = '#c8553d'; for (let i = 0; i < 12; i++) g.fillRect(4 + i * 10.4, 5, 6, h - 10); }), roughness: 0.6 })); gr.position.set(0, 3.12, p[0]); sc.add(gr);
       const lb = G.sprite('환기구 · 더운 공기 회수', '#a8402a', 0.9, 'rgba(255,255,255,.95)'); lb.position.set(0, 2.85, p[0]); sc.add(lb); });
-    const duct = mk(2.6, 0.32, 0.55, 0xb9654f); duct.position.set(2.9, 3.0, -4.7);
-    [-1.97, 1.97].forEach(x => [[-5.5, -3.55], [0.35, 2.35]].forEach(zr => { for (let z = zr[0] + 0.08; z < zr[1]; z += 0.15) { const st = mk(0.1, 1.8, 0.012, 0xe9eef2, 0.35); st.position.set(x, 1.3, z); } }));
-    // 냉각 장치 (CRAH)
-    const crah = new T.Group(); crah.position.set(4.2, 0, -5.05); const cb = mk(0.95, 2.0, 0.7, 0xdfe5ea); cb.position.y = 1.0; crah.add(cb);
+    const duct = mk(2.6, 0.32, 0.55, 0xb9654f); duct.position.set(2.9, 3.0, -5.9);
+    [-2.05, 2.05].forEach(x => [[-6.5, -3.55], [1.55, 3.7]].forEach(zr => { for (let z = zr[0] + 0.08; z < zr[1]; z += 0.15) { const st = mk(0.1, 1.8, 0.012, 0xe9eef2, 0.35); st.position.set(x, 1.3, z); } }));
+    // 냉각 장치 (CRAH): 북쪽 벽
+    const crah = new T.Group(); crah.position.set(4.2, 0, -6.2); const cb = mk(0.95, 2.0, 0.7, 0xdfe5ea); cb.position.y = 1.0; crah.add(cb);
     const cg = new T.Mesh(new T.PlaneGeometry(0.8, 1.2), new T.MeshBasicMaterial({ map: G.tex(128, 192, (g, w, h) => { g.fillStyle = '#c9d3db'; g.fillRect(0, 0, w, h); g.fillStyle = '#6b7a87'; for (let y = 8; y < h; y += 10) g.fillRect(8, y, w - 16, 4); }) })); cg.position.set(0, 1.05, 0.36); crah.add(cg);
-    const cl = G.sprite('CRAH-01 (냉각 장치)', '#14606f', 0.85, 'rgba(255,255,255,.95)'); cl.position.set(0, 2.3, 0.2); crah.add(cl); sc.add(crah); sc.children.forEach(() => {}); addCol(3.7, 4.7, -5.5, -4.7);
+    const cl = G.sprite('CRAH-01 (냉각 장치)', '#14606f', 0.85, 'rgba(255,255,255,.95)'); cl.position.set(0, 2.3, 0.2); crah.add(cl); sc.add(crah); addCol(3.7, 4.7, -6.6, -5.8);
     // 온도 표시판
     W.tempTex = {}; const panel = (key, x, y, z, ry, label, c) => { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; const tx = new T.CanvasTexture(cv); W.tempTex[key] = { cv, tx, label, c }; const m = new T.Mesh(new T.PlaneGeometry(0.34, 0.17), new T.MeshBasicMaterial({ map: tx })); m.position.set(x, y, z); m.rotation.y = ry; sc.add(m); };
-    panel('cold', -1.78, 1.5, -1.6, Math.PI / 2, 'COLD', '#7fd0ff'); panel('hot', -1.95, 1.5, -4.5, Math.PI / 2, 'HOT', '#ff9a7a'); W.setTemps(22, 35);
-    // 공기 흐름 화살표 (애니메이션)
-    W.air = []; const cone = (c) => new T.Mesh(new T.ConeGeometry(0.028, 0.1, 8), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85 }));
+    panel('cold', -1.78, 1.5, CZ, Math.PI / 2, 'COLD', '#7fd0ff'); panel('hot', -2.05, 1.5, -5.0, Math.PI / 2, 'HOT', '#ff9a7a'); W.setTemps(22, 35);
+    // 공기 흐름 화살표
+    W.air = []; const cone = (c) => new T.Mesh(new T.ConeGeometry(0.028, 0.1, 8), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.7 }));
     const add = (c, a, b, ph, sp) => { const m = cone(c); sc.add(m); const d = b.clone().sub(a).normalize(); m.quaternion.setFromUnitVectors(V3(0, 1, 0), d); W.air.push({ m, a, b, ph, sp: sp || 0.35 }); };
-    for (let i = 0; i < 6; i++) { const x = -1.5 + i * 0.6; add(0x2a9bff, V3(x, 0.08, -1.6), V3(x, 1.9, -1.6), i / 6, 0.3); }
-    for (let i = 0; i < 5; i++) { const x = -1.2 + i * 0.6; add(0x2a9bff, V3(x, 0.95, -1.6), V3(x, 0.95, -2.42), i / 5 + 0.1, 0.4); add(0x2a9bff, V3(x, 1.5, -1.6), V3(x, 1.5, -0.78), i / 5 + 0.3, 0.4); }
-    for (let i = 0; i < 5; i++) { const x = -1.2 + i * 0.6; add(0xff5a3c, V3(x, 0.95, -3.55), V3(x, 0.95, -4.35), i / 5, 0.4); add(0xff5a3c, V3(x, 1.7, -4.4), V3(x, 3.0, -4.4), i / 5 + 0.2, 0.3); add(0xff5a3c, V3(x, 1.5, 0.35), V3(x, 1.5, 1.2), i / 5 + 0.4, 0.4); add(0xff5a3c, V3(x, 1.8, 1.3), V3(x, 3.0, 1.3), i / 5 + 0.6, 0.3); }
+    for (let i = 0; i < 6; i++) [-1.9, -1.0, -0.1, 0.8].forEach((z, k) => { const x = -1.5 + i * 0.6; add(0x2a9bff, V3(x, 0.08, z), V3(x, 1.9, z), (i + k * 0.37) / 6, 0.3); });
+    for (let i = 0; i < 5; i++) { const x = -1.2 + i * 0.6; add(0x2a9bff, V3(x, 0.95, CZ), V3(x, 0.95, AF + 0.08), i / 5 + 0.1, 0.4); add(0x2a9bff, V3(x, 1.5, CZ), V3(x, 1.5, BF - 0.08), i / 5 + 0.3, 0.4); }
+    for (let i = 0; i < 5; i++) { const x = -1.2 + i * 0.6; add(0xff5a3c, V3(x, 0.95, -3.55), V3(x, 0.95, -4.5), i / 5, 0.4); add(0xff5a3c, V3(x, 1.7, -5.0), V3(x, 3.0, -5.0), i / 5 + 0.2, 0.3); add(0xff5a3c, V3(x, 1.5, 1.55), V3(x, 1.5, 2.5), i / 5 + 0.4, 0.4); add(0xff5a3c, V3(x, 1.8, 2.6), V3(x, 3.0, 2.6), i / 5 + 0.6, 0.3); }
   };
   W.animAir = function (t) { (W.air || []).forEach(a => { const k = (t * a.sp + a.ph) % 1; a.m.position.lerpVectors(a.a, a.b, k); a.m.material.opacity = 0.7 * Math.sin(Math.PI * k); }); };
   W.setTemps = function (cold, hot) {
     W.temps = { cold, hot }; Object.keys(W.tempTex || {}).forEach(k => { const o = W.tempTex[k], g = o.cv.getContext('2d'), v = k === 'cold' ? cold : hot; g.fillStyle = '#0d1418'; g.fillRect(0, 0, 256, 128); g.strokeStyle = '#3a4650'; g.lineWidth = 6; g.strokeRect(3, 3, 250, 122); g.fillStyle = o.c; g.font = '700 30px sans-serif'; g.textAlign = 'left'; g.fillText(o.label + ' AISLE', 16, 40); g.font = '700 58px monospace'; g.fillStyle = (k === 'cold' && v > 27) ? '#ff6b57' : '#e9fff2'; g.fillText(v.toFixed(1) + '℃', 16, 100); o.tx.needsUpdate = true; });
+  };
+  W.buildToolbox = function () {
+    const sc = G.scene, red = 0xc23a26, tool = new T.Group(); tool.position.set(-5.5, 0, 0.5); W.toolbox = tool;
+    const bs = box(0.5, 0.02, 0.24, red, 0.5); bs.position.y = 0.01; tool.add(bs);
+    [[0.5, 0.2, 0.012, 0, 0.11, 0.114], [0.5, 0.2, 0.012, 0, 0.11, -0.114], [0.012, 0.2, 0.24, 0.244, 0.11, 0], [0.012, 0.2, 0.24, -0.244, 0.11, 0]].forEach(q => { const w = box(q[0], q[1], q[2], red, 0.5); w.position.set(q[3], q[4], q[5]); tool.add(w); });
+    const mat0 = box(0.47, 0.008, 0.215, 0x2a2f36, 0.7); mat0.position.y = 0.026; tool.add(mat0);
+    const lid = new T.Group(); lid.position.set(0, 0.215, -0.125); const lm = box(0.5, 0.03, 0.26, red, 0.5); lm.position.set(0, 0.015, 0.125); lid.add(lm); const hd = box(0.26, 0.03, 0.03, 0x2a2f36, 0.4, 0.4); hd.position.set(0, 0.045, 0.125); lid.add(hd); tool.add(lid); W.toolLid = lid;
+    [-0.2, 0.2].forEach(x => { const lt = box(0.04, 0.05, 0.02, 0xb0b8c0, 0.3, 0.8); lt.position.set(x, 0.19, 0.122); tool.add(lt); });
+    const M = (c, r, m) => new T.MeshStandardMaterial({ color: c, roughness: r == null ? 0.5 : r, metalness: m || 0 }), cy = (r, l, c, m) => { const o = new T.Mesh(new T.CylinderGeometry(r, r, l, 14), M(c, 0.4, m)); o.castShadow = true; return o; };
+    W.toolItems = []; const addTool = (name, desc, g, x, z, ry) => { g.position.set(x, 0.04, z); g.rotation.y = ry || 0; g.visible = false; tool.add(g); W.toolItems.push({ g, name, desc, x: -5.5 + x, z: 0.5 + z, y: 0.15 }); };
+    let g = new T.Group(); let h1 = cy(0.013, 0.09, 0xe8742a); h1.rotation.z = Math.PI / 2; h1.position.x = -0.07; g.add(h1); let sh = cy(0.004, 0.1, 0xc9d0d6, 0.8); sh.rotation.z = Math.PI / 2; sh.position.x = 0.03; g.add(sh); addTool('십자 드라이버', '랙 레일·귀 나사를 조일 때 씁니다.', g, -0.1, 0.06, 0.3);
+    g = new T.Group(); [0, 1, 2].forEach(i => { const a = box(0.07 - i * 0.01, 0.006, 0.006, 0x8a949e, 0.4, 0.7); a.position.set(0, 0, i * 0.012); g.add(a); const b2 = box(0.006, 0.006, 0.03 - i * 0.004, 0x8a949e, 0.4, 0.7); b2.position.set(0.032 - i * 0.005, 0, i * 0.012 + 0.012); g.add(b2); }); addTool('육각 렌치 세트', '장비 브래킷·팬 모듈의 육각 볼트용.', g, 0.0, -0.06, 0.1);
+    g = new T.Group(); [-0.16, 0.16].forEach(a => { const b = box(0.12, 0.012, 0.018, 0xc23a26, 0.6); b.position.set(-0.05, 0, 0); b.rotation.y = a; g.add(b); const j = box(0.06, 0.012, 0.012, 0xc9d0d6, 0.3, 0.8); j.position.set(0.04, 0, a * 0.12); j.rotation.y = -a * 0.5; g.add(j); }); addTool('롱노즈 플라이어', '좁은 곳의 케이블 정리와 커넥터 작업용.', g, 0.12, 0.05, 0.5);
+    g = new T.Group(); const tr = new T.Mesh(new T.TorusGeometry(0.03, 0.012, 8, 18), M(0xf2f2ee, 0.8)); tr.rotation.x = Math.PI / 2; g.add(tr); const tb = box(0.012, 0.014, 0.05, 0x1b2127, 0.6); tb.position.set(0, 0, 0.03); g.add(tb); addTool('케이블 타이', '케이블을 묶어 랙 안을 정리합니다.', g, -0.16, -0.05, 0);
+    g = new T.Group(); const rl = cy(0.03, 0.03, 0xffffff); g.add(rl); const rc = cy(0.012, 0.032, 0x59626b); g.add(rc); addTool('라벨 테이프', '케이블 양 끝에 라벨을 붙입니다.', g, 0.19, -0.05, 0);
+    g = new T.Group(); const fl = cy(0.018, 0.13, 0x1b2127); fl.rotation.z = Math.PI / 2; g.add(fl); const fh = cy(0.024, 0.03, 0xe0a030); fh.rotation.z = Math.PI / 2; fh.position.x = 0.08; g.add(fh); addTool('손전등', '랙 뒤쪽 어두운 곳을 비춥니다.', g, 0.05, 0.075, -0.2);
+    g = new T.Group(); const pm = box(0.1, 0.03, 0.055, 0x59626b, 0.4, 0.4); g.add(pm); const pd = box(0.04, 0.004, 0.03, 0x10161b, 0.3); pd.position.set(-0.015, 0.017, 0); g.add(pd); const pp = cy(0.007, 0.02, 0xe8b923); pp.rotation.z = Math.PI / 2; pp.position.x = 0.06; g.add(pp); addTool('광 파워 미터', '광 케이블의 수신 세기(dBm)를 잽니다.', g, 0.02, -0.01, 0.2);
+    sc.add(tool);
+  };
+  W.buildStepladder = function () {
+    const sc = G.scene, g = new T.Group(); g.position.set(6.2, 0, -5.0); const ang = Math.atan(0.45 / 1.8), len = Math.hypot(1.8, 0.45), al = 0xb7c0c8, yel = 0xd9a21e;
+    const rail = (x, z, ry) => { const r = box(0.05, len, 0.028, al, 0.35, 0.6); r.position.set(x, 0.9, z); r.rotation.x = ry; r.castShadow = true; g.add(r); };
+    [-0.27, 0.27].forEach(x => { rail(x, 0.225, -ang); rail(x, -0.225, ang); });
+    for (let k = 0; k < 5; k++) { const y = 0.34 + k * 0.3, z = 0.45 * (1 - y / 1.8); const st = box(0.6, 0.03, 0.14, yel, 0.5, 0.2); st.position.set(0, y, z + 0.02); g.add(st); }
+    [0.55, 1.0, 1.45].forEach(y => { const z = -0.45 * (1 - y / 1.8); const br = box(0.54, 0.03, 0.03, al, 0.4, 0.6); br.position.set(0, y, z); g.add(br); });
+    const top = box(0.62, 0.035, 0.3, yel, 0.5, 0.2); top.position.set(0, 1.8, 0); g.add(top); const cap = box(0.64, 0.05, 0.06, 0x2a2f36, 0.6); cap.position.set(0, 1.83, 0); g.add(cap);
+    [-0.28, 0.28].forEach(x => { const sp = box(0.03, 0.03, 0.75, 0x8a949e, 0.4, 0.7); sp.position.set(x, 0.55, 0); sp.rotation.x = 0; g.add(sp); const lk = box(0.045, 0.045, 0.05, 0xe0a030, 0.4); lk.position.set(x, 0.55, 0); g.add(lk); });
+    [[-0.27, 0.45], [0.27, 0.45], [-0.27, -0.45], [0.27, -0.45]].forEach(p => { const ft = box(0.07, 0.04, 0.06, 0x1b2127, 0.8); ft.position.set(p[0], 0.02, p[1]); g.add(ft); });
+    const lb = G.sprite('A형 사다리 (튼튼한 접이식)', '#222', 0.7, 'rgba(255,255,255,.92)'); lb.position.set(0, 2.15, 0); g.add(lb); sc.add(g); addCol(5.85, 6.55, -5.65, -4.35); W.stepladder = g;
+  };
+  W.makeMeter = function (pos) {
+    const g = new T.Group(), body = box(0.07, 0.2, 0.04, 0xf0b030, 0.5); body.position.y = 0.1; g.add(body);
+    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 96; const tx = new T.CanvasTexture(cv); const draw = v => { const c = cv.getContext('2d'); c.fillStyle = '#0d1a14'; c.fillRect(0, 0, 128, 96); c.fillStyle = '#7fe3a1'; c.font = '700 40px monospace'; c.textAlign = 'center'; c.fillText(v == null ? '--.-' : v.toFixed(1), 64, 52); c.font = '16px sans-serif'; c.fillText('A (AC)', 64, 80); tx.needsUpdate = true; }; draw(null);
+    const ds = new T.Mesh(new T.PlaneGeometry(0.052, 0.04), new T.MeshBasicMaterial({ map: tx })); ds.position.set(0, 0.13, 0.021); g.add(ds);
+    const jaw = new T.Mesh(new T.TorusGeometry(0.036, 0.009, 8, 22, Math.PI * 1.7), mat(0x2a2f36, 0.5)); jaw.position.set(0, 0.235, 0); jaw.rotation.set(0, 0, 0.3); g.add(jaw);
+    const bt = box(0.03, 0.012, 0.008, 0x2a2f36, 0.6); bt.position.set(0, 0.06, 0.021); g.add(bt);
+    const lb = G.sprite('클램프 미터', '#1b2127', 0.34, 'rgba(255,255,255,.9)'); lb.position.set(0, 0.36, 0); g.add(lb); g.position.copy(pos);
+    const it = W.makeItem('meter', '클램프 미터 (전류 측정기)', g, [0.14, 0.34, 0.1, 0, 0.17, 0], { type: 'meter', holdT: { p: [0.24, -0.26, -0.5], r: [0.3, -0.4, 0.15], s: 1.6 }, kind: 'tool' }); it.setDisplay = draw; return it;
   };
   W.npcLook = function () { const n = W.npc; if (!n) return; const a = Math.atan2(G.pos.x - n.position.x, G.pos.z - n.position.z); n.rotation.y += (((a - n.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * 0.06; };
 })();

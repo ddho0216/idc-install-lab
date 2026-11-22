@@ -102,7 +102,7 @@
     }
   };
   /* ---- 길찾기 (격자 A*) ---- */
-  G.bounds = { x0: -7, x1: 7, z0: -5.6, z1: 6.6, cs: 0.2 };
+  G.bounds = { x0: -7, x1: 7, z0: -6.6, z1: 6.6, cs: 0.2 };
   G.buildNav = function () {
     const b = G.bounds, nx = Math.ceil((b.x1 - b.x0) / b.cs), nz = Math.ceil((b.z1 - b.z0) / b.cs), bl = new Uint8Array(nx * nz);
     for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const x = b.x0 + (i + 0.5) * b.cs, z = b.z0 + (j + 0.5) * b.cs; for (const c of G.colliders) if (x > c.x0 - 0.32 && x < c.x1 + 0.32 && z > c.z0 - 0.32 && z < c.z1 + 0.32) { bl[i * nz + j] = 1; break; } }
