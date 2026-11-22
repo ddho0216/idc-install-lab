@@ -1,6 +1,6 @@
 // 마우스 전용 플레이 확인 (실제 마우스 이벤트): node tests/mouse.js [URL]
 const { chromium } = require('playwright');
-const URL = process.argv[2] || 'http://localhost:8770/', OUT = process.env.OUT || '/tmp/ms-';
+const URL = process.argv[2] || 'http://localhost:8770/walk.html', OUT = process.env.OUT || '/tmp/ms-';
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: 1100, height: 680 } });

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IDC 신입 엔지니어</title>
+<meta name="description" content="걸어다니며 장비를 직접 집어 랙에 설치하고, 감독관 검수를 통과하는 IDC 현장 실습 게임 (모든 장비·값은 가상)">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hud" hidden>
+  <div id="cross"></div>
+  <div id="prompt"></div>
+  <div id="top"><b id="lvname"></b><span id="timer">00:00</span><span id="mis">실수 0</span><span class="keys"><button data-top="order">작업지시서</button><button data-top="guide">안내판</button><button data-top="help">도움말</button></span></div>
+  <div id="handbar" hidden></div>
+  <div id="guide"></div>
+  <div id="quick"></div>
+  <div id="toast"></div>
+  <div id="lockhint" hidden>화면을 클릭하면 시점이 고정됩니다 (Esc로 해제)</div>
+</div>
+<div id="modal" hidden></div>
+<div id="start"></div>
+<script src="vendor/three.min.js"></script>
+<script src="js/cli.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/world.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

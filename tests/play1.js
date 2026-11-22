@@ -1,6 +1,6 @@
 // 레벨 1 자동 플레이 (Playwright). 사용: node tests/play1.js [URL]
 const { chromium } = require('playwright');
-const URL = process.argv[2] || 'http://localhost:8767/';
+const URL = process.argv[2] || 'http://localhost:8767/walk.html';
 const OUT = process.env.OUT || '/tmp/play-';
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });

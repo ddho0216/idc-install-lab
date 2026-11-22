@@ -1,6 +1,6 @@
 // 레벨 2 자동 플레이. 사용: node tests/play2.js [URL]
 const { chromium } = require('playwright');
-const URL = process.argv[2] || 'http://localhost:8767/';
+const URL = process.argv[2] || 'http://localhost:8767/walk.html';
 const OUT = process.env.OUT || '/tmp/play2-';
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
