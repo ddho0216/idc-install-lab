@@ -24,23 +24,104 @@ body{background:var(--room);color:var(--ink);font:14px/1.55 var(--sans)}
 .brand em{color:#f27a3d;font-style:normal}.brand i{opacity:.45;font-style:normal}.brand span{font:500 17px var(--serif)}
 .clock{position:fixed;right:max(24px,env(safe-area-inset-right,0px));top:calc(18px + env(safe-area-inset-top,0px));z-index:3;display:flex;gap:2px;padding:5px;border-radius:999px;background:rgba(243,239,230,.95);box-shadow:0 8px 24px rgba(0,0,0,.25);font:500 12.5px var(--mono);color:var(--mute)}
 .clock span{padding:6px 14px;border-radius:999px}.clock b{color:var(--ink);font-weight:600;margin-left:6px}.clock .on{background:var(--panel);color:#cfc6b6}.clock .on b{color:#f27a3d}
-.lesson{position:fixed;left:max(20px,env(safe-area-inset-left,0px));top:calc(64px + env(safe-area-inset-top,0px));bottom:20px;width:350px;z-index:3;overflow:auto;background:var(--card);border-radius:20px;padding:20px 22px 18px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
-.kick{display:flex;justify-content:space-between;font:500 11.5px var(--mono);letter-spacing:.12em;color:var(--accent)}.kick b{color:var(--mute);font-weight:500}
-.lesson h1{margin:6px 0 6px;font:600 29px/1.2 var(--serif);letter-spacing:-.01em;text-wrap:balance}
-.lesson .desc{margin:0 0 12px;color:#4a453b;font-size:14.5px}
-.lesson ol{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
-.lesson li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px solid var(--line);color:#a69f8f;font-size:14px;cursor:pointer}
-.lesson li .n{font:500 12px var(--mono);padding-top:2px}
-.lesson li.cur{color:var(--ink);font-weight:500}.lesson li.cur .n{color:var(--accent)}
-.lesson li.done{color:#8b8474}.lesson li.done .t{text-decoration:line-through;text-decoration-color:#c9c1b0}.lesson li.done .n{color:#2f9e6b}
-.lesson li small{display:block;font-weight:400;color:var(--mute);font-size:12.5px;margin-top:2px}
-details.why{margin:14px 0;border-radius:12px;background:var(--card2)}
-details.why summary{padding:12px 14px;cursor:pointer;font:500 12px var(--mono);letter-spacing:.1em;color:var(--accent);list-style:none}
-details.why summary::after{content:' +'}details.why[open] summary::after{content:' −'}
-details.why p{margin:0;padding:0 14px 14px;font-size:13.5px;color:#4a453b}
-.next{display:block;width:100%;padding:12px;border-radius:999px;border:1.5px solid var(--ink);background:transparent;font:500 14px var(--sans);color:var(--ink);cursor:pointer}
-.next:hover{background:var(--ink);color:#fff}
+.lesson{position:fixed;left:max(20px,env(safe-area-inset-left,0px));top:calc(92px + env(safe-area-inset-top,0px));bottom:20px;width:360px;z-index:3;display:flex;flex-direction:column;gap:12px;padding:30px 18px 16px;border-radius:4px 14px 12px 12px;
+  background:#d9b878 repeating-linear-gradient(93deg,rgba(120,85,30,.05) 0 2px,transparent 2px 7px);box-shadow:inset 0 0 0 1px rgba(110,78,30,.25),0 18px 50px rgba(0,0,0,.45);color:var(--ink)}
+.lesson{transition:width .3s cubic-bezier(.4,0,.2,1),padding .3s}
+.lesson>*{transition:opacity .15s}
+.lesson.closed{width:54px;padding:0;cursor:pointer;border-radius:6px}
+.lesson.closed>*:not(.fspine){opacity:0;visibility:hidden;pointer-events:none}
+.fold{position:absolute;right:10px;top:-28px;z-index:3;border:0;background:#d9b878;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 1px 0 0 rgba(110,78,30,.25),inset -1px 0 0 rgba(110,78,30,.25);border-radius:9px 9px 0 0;padding:6px 12px 7px;font:600 12px var(--sans);color:#5c4a28;cursor:pointer}
+.fold:hover{background:#e6c88c}
+.fspine{position:absolute;inset:0;display:none;border:0;background:transparent;cursor:pointer;padding:16px 0;flex-direction:column;align-items:center;gap:14px;font:inherit}
+.lesson.closed .fspine{display:flex}
+.fspine .lb{writing-mode:vertical-rl;background:#fbf8f0;padding:12px 5px;font:600 12px var(--mono);letter-spacing:.08em;color:#2a2620;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.fspine .st2{writing-mode:vertical-rl;font:600 12px var(--sans);color:#5c4a28}
+.fspine .op{margin-top:auto;font:600 11px var(--sans);color:#5c4a28;writing-mode:vertical-rl}
+.fspine:focus-visible,.fold:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lesson::after{content:"";position:absolute;left:0;right:0;bottom:0;height:10px;border-radius:0 0 12px 12px;background:rgba(110,78,30,.12)}
+.ftab{position:absolute;left:0;top:-30px;height:31px;padding:6px 14px 0;border-radius:10px 10px 0 0;background:#d9b878;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 1px 0 0 rgba(110,78,30,.25),inset -1px 0 0 rgba(110,78,30,.25)}
+.ftab span{display:block;background:#fbf8f0;padding:2px 10px;font:600 12px var(--mono);letter-spacing:.04em;color:#2a2620;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.fprong{position:absolute;left:50%;top:10px;width:120px;height:10px;margin-left:-60px;border-radius:3px;background:linear-gradient(#c9ccce,#8e9396);box-shadow:0 1px 2px rgba(0,0,0,.35);z-index:2}
+.sheet{position:relative;display:block;width:100%;text-align:left;border:0;cursor:zoom-in;font:inherit;color:inherit;background:#fbfaf5;padding:22px 18px 14px;transform:rotate(-.6deg);
+  box-shadow:3px 3px 0 #efe9da,6px 6px 0 #e4dcc8,0 6px 14px rgba(60,40,10,.25);transition:transform .15s}
+.sheet:hover{transform:rotate(0) translateY(-2px)}
+.sheet::before{content:"";position:absolute;left:50%;top:9px;width:56px;height:6px;margin-left:-28px;background:radial-gradient(circle at 5px 3px,#c7bfae 3px,transparent 3.5px),radial-gradient(circle at 51px 3px,#c7bfae 3px,transparent 3.5px)}
+.sheet .dh{display:flex;justify-content:space-between;font:500 11px var(--mono);letter-spacing:.08em;color:#7a7364;border-bottom:1.5px solid #2a2620;padding-bottom:6px}
+.sheet .dh b{color:#2a2620;font-weight:600}
+.sheet h1{margin:10px 0 4px;font:600 25px/1.2 var(--serif);letter-spacing:-.01em;text-wrap:balance}
+.sheet p{margin:0 0 10px;font-size:13.5px;color:#4a453b}
+.sheet dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;font:400 12px var(--mono);border-top:1px dashed #cfc6b2;padding-top:8px}
+.sheet dt{color:#8a8372}.sheet dd{margin:0;color:#2a2620;text-align:right}
+.sheet .zm{display:block;margin-top:10px;font:500 11.5px var(--mono);color:var(--accent);text-align:right}
+.reg{flex:1;min-height:0;overflow:auto;padding:4px 2px 0}
+.reg h3{margin:4px 0 6px;font:600 11px var(--mono);letter-spacing:.14em;color:#6e5523}
+.reg ol{list-style:none;margin:0;padding:0}
+.reg li{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:6px;align-items:center;padding:7px 4px;border-bottom:1px solid rgba(110,78,30,.28);font-size:13.5px;color:#5c4a28;cursor:pointer}
+.reg li .n{font:500 11.5px var(--mono);color:#8a6e3a}
+.reg li.cur{background:rgba(251,248,240,.55);color:#1d1b18;font-weight:500}
+.reg li.cur .n{color:var(--accent)}
+.reg .st{font:700 10.5px var(--mono);letter-spacing:.08em;padding:1px 6px;border:1.5px solid;border-radius:3px;transform:rotate(-6deg)}
+.reg .st.dn{color:#b3261e;border-color:#b3261e;opacity:.85}.reg .st.now{color:#1d1b18;border-color:#1d1b18;transform:none}
+.reg li:hover{background:rgba(251,248,240,.35)}
+.next{display:block;width:100%;padding:12px;border-radius:8px;border:0;background:#2a2620;font:500 14px var(--sans);color:#f6efe0;cursor:pointer}
+.next:hover{background:#000}
+/* 3D 물체 카드 */
+#tip{position:fixed;z-index:6;pointer-events:none;padding:4px 10px;border-radius:6px;background:#2a2620;color:#fff7d6;font:500 12px var(--sans);white-space:nowrap;transform:translate(14px,14px)}
+#pop{position:fixed;z-index:7;width:290px;background:#fbfaf5;color:#2a2620;border-radius:12px;padding:14px 16px;box-shadow:0 18px 48px rgba(0,0,0,.45)}
+#pop .k{font:600 10.5px var(--mono);letter-spacing:.14em;color:#8a8372}
+#pop h3{margin:2px 0 6px;font:600 18px/1.25 var(--serif)}
+#pop p{margin:0 0 8px;font-size:13px;color:#4a453b}
+#pop .r{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px dashed #ded5c2;font:400 12px var(--mono)}
+#pop .r span:first-child{color:#8a8372}
+#pop .r .ok{color:#1f7a50!important}#pop .r .bad{color:#b3261e!important}#pop .r .warn{color:#a86b00!important}
+#pop .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#pop .acts button{border:1.5px solid #2a2620;background:transparent;border-radius:999px;padding:6px 12px;font:500 12.5px var(--sans);cursor:pointer;color:#2a2620}
+#pop .acts button:first-child{background:#2a2620;color:#fff7d6}
+#pop .res{margin-top:8px;font:500 12.5px var(--mono);color:#2a2620;background:#fff3c2;border-radius:6px;padding:6px 8px}
+#pop .x{position:absolute;right:10px;top:8px;border:0;background:transparent;font:500 18px var(--sans);cursor:pointer;color:#8a8372}
+.zoom{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px));background:rgba(18,16,13,.62);backdrop-filter:blur(3px)}
+.zoom[hidden]{display:none}
+.doc{position:relative;width:min(700px,100%);max-height:88vh;overflow:auto;background:#fbfaf5;color:#2a2620;padding:44px 48px 36px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:docin .28s cubic-bezier(.2,.8,.3,1)}
+@keyframes docin{from{transform:translate(-30vw,10vh) scale(.45) rotate(-4deg);opacity:.3}}
+.doc::before{content:"";position:absolute;left:50%;top:16px;width:90px;height:10px;margin-left:-45px;background:radial-gradient(circle at 6px 5px,#d6cebd 5px,transparent 5.5px),radial-gradient(circle at 84px 5px,#d6cebd 5px,transparent 5.5px)}
+.doc .x{position:sticky;top:0;float:right;margin:-28px -30px 0 0;border:0;background:#2a2620;color:#fff;border-radius:6px;padding:6px 12px;font:500 12px var(--sans);cursor:pointer}
+.doc .org{font:500 11px var(--mono);letter-spacing:.14em;color:#7a7364}
+.doc h2{margin:6px 0 2px;font:600 30px/1.2 var(--serif)}
+.doc .no{font:500 12.5px var(--mono);color:#7a7364;padding-bottom:12px;border-bottom:2px solid #2a2620;margin-bottom:16px}
+.doc h4{margin:18px 0 6px;font:600 12px var(--mono);letter-spacing:.12em;color:#7a7364}
+.doc table{width:100%;border-collapse:collapse;font-size:13.5px}
+.doc th,.doc td{border:1px solid #cfc6b2;padding:7px 10px;text-align:left;vertical-align:top}
+.doc th{background:#f1ece0;font-weight:500;width:30%;color:#4a453b}
+.doc td.m{font-family:var(--mono);font-size:12.5px}
+.doc .hl{background:#fde7cf}
+.doc .bad{color:#b3261e!important;font-weight:600}.doc .ok{color:#1f7a50!important;font-weight:600}
+.doc ul.ck{list-style:none;margin:0;padding:0}.doc ul.ck li{padding:5px 0;border-bottom:1px dashed #d8cfbd;font-size:14px}.doc ul.ck li::before{content:"☐ ";font-family:var(--mono)}.doc ul.ck li.y::before{content:"☑ ";color:#1f7a50}
+.doc .sign{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+.doc .sign div{width:96px;border:1px solid #cfc6b2;text-align:center;font-size:12px;color:#7a7364}
+.doc .sign div b{display:block;height:58px;display:grid;place-items:center;border-top:1px solid #cfc6b2}
+.lbig{display:flex;align-items:stretch;margin:6px 0 4px;max-width:560px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.18))}
+.lbig .lp{position:relative;flex:0 0 62%;background:#fff;padding:18px 20px;border-radius:4px 0 0 4px;display:flex;flex-direction:column;gap:2px;font-family:var(--mono)}
+.lbig .lp b{font-size:42px;letter-spacing:.04em;line-height:1}
+.lbig .lp span{font-size:15px}.lbig .lp .lt{color:#7a7364;font-size:13px}
+.lbig .lp i{position:absolute;right:18px;top:20px;width:110px;height:30px;background:repeating-linear-gradient(90deg,#111 0 2px,transparent 2px 4px,#111 4px 5px,transparent 5px 8px)}
+.lbig .lp em{position:absolute;right:18px;bottom:12px;font-style:normal;font-size:13px;color:#7a7364}
+.lbig .ll{flex:1;border-radius:0 4px 4px 0;background:repeating-linear-gradient(135deg,rgba(200,215,222,.45) 0 6px,rgba(230,238,242,.35) 6px 12px);border:1px dashed #b9c6cc;border-left:0;display:grid;place-items:center;text-align:center;font:500 11.5px var(--mono);color:#6c7a80;padding:8px}
+.stamp{display:inline-block;padding:4px 8px;border:2.5px solid #c0352a;color:#c0352a;border-radius:50%;font:700 13px var(--sans);transform:rotate(-12deg);opacity:.85}
+.stamp.no{border-radius:4px;color:#555;border-color:#777}
+.doc .pen{margin-top:20px;padding:10px 0 0;border-top:1px dashed #cfc6b2;font-size:13.5px;color:#4a453b}
+.doc .pen b{font:600 11px var(--mono);letter-spacing:.12em;color:#7a7364;display:block;margin-bottom:4px}
+.rackmap{display:grid;grid-template-columns:28px 1fr;font:500 10.5px var(--mono);border:1.5px solid #2a2620;max-width:260px}
+.rackmap span{border-bottom:1px solid #e3dccb;padding:0 4px;height:15px;line-height:15px;color:#7a7364}
+.rackmap i{border-bottom:1px solid #e3dccb;height:15px;line-height:15px;font-style:normal;padding-left:6px;background:#f1ece0}
+.rackmap i.e{background:#fff}.rackmap i.t{background:#f9c79b;font-weight:600;color:#2a2620}
+@media (prefers-reduced-motion:reduce){.doc{animation:none}}
 .instr{position:fixed;right:max(20px,env(safe-area-inset-right,0px));top:calc(72px + env(safe-area-inset-top,0px));width:310px;z-index:3;background:rgba(27,26,24,.94);color:var(--pink);border-radius:18px;padding:16px 18px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.instr{transition:width .25s}
+.instr.closed{width:auto;padding:8px}
+.instr.closed>*:not(.ifold){display:none}
+.ifold{position:absolute;right:12px;top:10px;border:0;background:#2e2b27;color:#cfc6b6;border-radius:6px;padding:4px 10px;font:600 12px var(--sans);cursor:pointer}
+.instr.closed .ifold{position:static;padding:8px 14px}
+.ifold:hover{background:#3a3631}.ifold:focus-visible{outline:2px solid var(--accent)}
 .instr h2{margin:0 0 10px;font:500 11.5px var(--mono);letter-spacing:.14em;color:#9a9284}
 .row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font:400 12.5px var(--mono)}
 .row span:first-child{color:#8d8678}.row span:last-child{text-align:right;color:#efe8db;font-variant-numeric:tabular-nums}
@@ -62,17 +143,17 @@ details.why p{margin:0;padding:0 14px 14px;font-size:13.5px;color:#4a453b}
 .btn.pri{background:var(--accent);color:#fff}
 .btn:disabled{opacity:.35;cursor:default}
 button:focus-visible,li:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.hint{position:fixed;left:390px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:2;font:400 11.5px var(--mono);color:#b9ae9c;pointer-events:none}
+.hint{position:fixed;left:410px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:2;font:400 11.5px var(--mono);color:#b9ae9c;pointer-events:none}
 .bub{position:fixed;z-index:2;transform:translate(-50%,-100%);pointer-events:none;display:flex;flex-direction:column;align-items:center}
 .bub div{display:flex;gap:8px;align-items:center;padding:6px 12px;border-radius:999px;background:rgba(20,19,17,.92);color:#f1ebdf;font:500 12.5px var(--sans);white-space:nowrap;border:1px solid rgba(255,255,255,.12);box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .bub div::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c,#f1ebdf)}
 .bub i{width:1.5px;height:22px;background:var(--c,#f1ebdf);opacity:.8}
 .bub.tap div{background:var(--accent);border-color:var(--accent);color:#fff}.bub.tap div::before{background:#fff}
-.mock{pointer-events:auto;position:fixed;right:max(24px,env(safe-area-inset-right,0px));bottom:calc(26px + env(safe-area-inset-bottom,0px));z-index:2;font:500 11px var(--mono);color:#b9ae9c;letter-spacing:.06em}
+.mock{position:fixed;right:max(24px,env(safe-area-inset-right,0px));bottom:calc(26px + env(safe-area-inset-bottom,0px));z-index:2;font:500 11px var(--mono);color:#b9ae9c;letter-spacing:.06em}
 @media (max-width:1200px){.instr{width:270px}.hint,.mock{display:none}}
 @media (max-width:900px){
-  .lesson{top:auto;left:8px;right:8px;width:auto;bottom:76px;max-height:38vh;padding:14px 16px}
-  .lesson ol,.lesson details{display:none}.lesson h1{font-size:22px}
+  .lesson{top:auto;left:8px;right:8px;width:auto;bottom:76px;max-height:42vh;padding:24px 12px 12px}
+  .reg,.ftab{display:none}.sheet h1{font-size:20px}.doc{padding:36px 22px 24px}#pop{width:min(290px,calc(100vw - 16px))}
   .instr{display:none}.clock{left:8px;right:8px;justify-content:center;flex-wrap:wrap}.brand{display:none}
   .bar{left:8px;right:8px;max-width:calc(100vw - 16px);bottom:10px}
 }
@@ -91,9 +172,12 @@ button:focus-visible,li:focus-visible{outline:2px solid var(--accent);outline-of
   <button class="wif" id="wif" aria-pressed="false"><span class="tg"></span><span><small>만약에</small><br><span id="wifT"></span></span></button>
   <button class="btn pri" id="done">이 단계 완료</button>
 </div>
-<div class="hint">드래그 = 돌려 보기 · 휠 = 확대 · 주황 말풍선 물체를 누르면 작업합니다</div>
+<div class="hint">바닥 클릭 = 그쪽으로 이동 · 드래그 = 돌려 보기 · 오른쪽 드래그 = 옆으로 이동 · 휠 = 확대</div>
 <div class="mock">모든 값은 가상 · <a href="walk.html" style="color:inherit">걸어다니는 현장 실습 →</a></div>
 <div id="bubs"></div>
+<div id="tip" hidden></div>
+<div id="pop" hidden role="dialog" aria-label="물체 정보"></div>
+<div class="zoom" id="zoom" hidden><article class="doc" id="doc" role="dialog" aria-modal="true" aria-label="문서 크게 보기"></article></div>
 
 <script src="vendor/three-r128.min.js"></script>
 <script>
@@ -131,7 +215,9 @@ const tWall=cnv(256,256,(g,w,h)=>{g.fillStyle='#dcd6cb';g.fillRect(0,0,w,h);for(
 tWall.wrapS=tWall.wrapT=T.RepeatWrapping;
 const tDoor=cnv(256,512,(g,w,h)=>{g.fillStyle='#1c1f22';g.fillRect(0,0,w,h);g.fillStyle='#0a0b0c';for(let y=24;y<h-24;y+=9)for(let x=((y/9)%2?18:22);x<w-14;x+=9)g.fillRect(x,y,5,5);g.fillStyle='#2b3035';g.fillRect(0,0,w,14);g.fillRect(0,h-14,w,14);g.fillStyle='#9aa1a6';g.fillRect(w-24,h*.44,8,64);});
 const tPost=cnv(32,512,(g,w,h)=>{g.fillStyle='#202326';g.fillRect(0,0,w,h);g.fillStyle='#08090a';for(let y=4;y<h;y+=12)g.fillRect(12,y,8,6);});
-function fTex(kind){return cnv(512,kind==='2u'?96:kind==='sto'?190:48,(g,w,h)=>{
+function fTex(kind){return cnv(512,kind==='2u'?96:(kind==='sto'||kind==='gpu')?190:48,(g,w,h)=>{
+  if(kind==='gpu'){g.fillStyle='#15191c';g.fillRect(0,0,w,h);for(let i=0;i<4;i++){g.fillStyle='#0b0d0e';g.beginPath();g.arc(70+i*112,h/2,44,0,7);g.fill();g.strokeStyle='#3a4247';g.lineWidth=3;for(let a=0;a<6;a++){g.beginPath();g.moveTo(70+i*112,h/2);g.lineTo(70+i*112+40*Math.cos(a),h/2+40*Math.sin(a));g.stroke();}}g.fillStyle='#76b900';g.fillRect(0,h-10,w,4);g.fillStyle='#9ba1a7';g.fillRect(0,0,8,h);g.fillRect(w-8,0,8,h);return;}
+  if(kind==='fw'){g.fillStyle='#7b2d22';g.fillRect(0,0,w,h);g.fillStyle='#111';for(let i=0;i<8;i++)g.fillRect(150+i*30,12,22,22);g.fillStyle='#f2c200';g.font='700 15px monospace';g.fillText('FW',40,30);g.fillStyle='#3fbf86';g.fillRect(420,16,6,6);g.fillStyle='#9ba1a7';g.fillRect(0,0,8,h);g.fillRect(w-8,0,8,h);return;}
   const bg=kind==='sw'?'#2f3a44':kind==='blank'?'#1b1e21':'#2c2f33';g.fillStyle=bg;g.fillRect(0,0,w,h);
   if(kind==='2u'||kind==='sto'){const rows=kind==='sto'?4:2;for(let r=0;r<rows;r++)for(let i=0;i<8;i++){const x=56+i*48,y=8+r*(h-16)/rows;g.fillStyle='#4a4f55';g.fillRect(x,y,42,(h-16)/rows-6);g.fillStyle='#16181a';g.fillRect(x+4,y+6,34,3);g.fillStyle=i%3?'#3fbf86':'#2b6f52';g.fillRect(x+34,y+4,4,3);}
     g.fillStyle='#16181a';for(let y=10;y<h-10;y+=7)g.fillRect(10,y,36,3);g.fillStyle='#8d9399';g.font='600 13px monospace';g.fillText(kind==='sto'?'STOR':'SRV',w-60,h-12);g.fillStyle='#16181a';for(let y=10;y<h-10;y+=7)g.fillRect(w-62,y-30>0?y:10,0,0);}
@@ -167,7 +253,7 @@ box(room,W,0.12,0.14,M(0x6d6a63),0,0.06,-D/2+0.02);box(room,0.14,0.12,D,M(0x6d6a
 /* 벽 디테일: 표지판·소화기·온습도계 */
 const sign=new T.Mesh(new T.PlaneGeometry(0.9,0.3),new T.MeshBasicMaterial({map:cnv(360,120,(g,w,h)=>{g.fillStyle='#1d2a3a';g.fillRect(0,0,w,h);g.fillStyle='#fff';g.font='700 40px sans-serif';g.fillText('HALL B · ROW 3',20,62);g.font='500 22px monospace';g.fillStyle='#9fc8ff';g.fillText('COLD AISLE →',20,100);})}));
 sign.position.set(-1.6,2.3,-D/2+0.01);room.add(sign);
-cyl(room,0.08,0.45,M(0xc62d22,{roughness:.4}),-W/2+0.15,0.28,-1.2);cyl(room,0.03,0.08,M(0x222),-W/2+0.15,0.54,-1.2);
+const ext=new T.Group();room.add(ext);cyl(ext,0.08,0.45,M(0xc62d22,{roughness:.4}),-W/2+0.15,0.28,-1.2);cyl(ext,0.03,0.08,M(0x222),-W/2+0.15,0.54,-1.2);
 const thermo=box(room,0.02,0.18,0.14,M(0xf4f1ea),-W/2+0.01,1.5,0.4);
 /* 케이블 트레이 */
 const tray=new T.Group();room.add(tray);
@@ -176,6 +262,15 @@ for(let x=-2.1;x<=2.1;x+=0.25) box(tray,0.03,0.02,0.42,M(0xe0a030,{metalness:.4,
 for(const x of [-2,0,2]) box(tray,0.02,0.65,0.02,M(0x777),x,2.6,-0.75);
 
 /* ---------- 랙 ---------- */
+const RACKCUST={R05:{s:'샘플게임즈',n:'샘플게임즈 (가상)'},R06:{s:'데모스트리밍',n:'데모스트리밍 (가상)'},R07:{s:'모의커머스',n:'모의커머스 (가상)'},R08:{s:'가상은행',n:'가상은행 (가상)'},R09:{s:'예시미디어',n:'예시미디어 (가상)'}};
+/* 고객사마다 다른 랙 구성 */
+const LAYOUT={
+ R05:[[1,'blank']].concat(Array.from({length:22},(_,i)=>[3+i,'1u'])).concat([[26,'blank'],[27,'blank'],[38,'sw'],[40,'sw']]),
+ R06:[[1,'sto'],[5,'sto'],[9,'sto'],[13,'sto'],[18,'2u'],[20,'2u'],[22,'2u'],[24,'2u'],[27,'blank'],[28,'blank'],[40,'sw']],
+ R07:[[2,'2u'],[4,'2u'],[6,'2u'],[8,'blank'],[12,'blank'],[14,'1u'],[15,'1u'],[17,'sto'],[30,'blank'],[40,'sw']],
+ R08:[[2,'2u'],[4,'2u'],[7,'fw'],[8,'fw'],[10,'blank'],[11,'blank'],[12,'blank'],[13,'blank'],[14,'blank'],[20,'2u'],[39,'fw'],[40,'sw']],
+ R09:[[1,'gpu'],[5,'gpu'],[9,'gpu'],[13,'gpu'],[18,'blank'],[19,'blank'],[38,'sw'],[40,'sw']]};
+const HU={'2u':2,sto:4,gpu:4};
 const RU=0.0445, rackH=2.0, uY=u=>0.08+(u-1)*RU;
 const racks={};
 let devRear;
@@ -186,14 +281,16 @@ function makeRack(name,x,open){
   box(g,0.6,0.05,1.0,blk,0,0.025,0);box(g,0.6,0.05,1.0,blk,0,rackH-0.025,0);
   box(g,0.015,rackH,1.0,blk,-0.3,rackH/2,0);box(g,0.015,rackH,1.0,blk,0.3,rackH/2,0);
   for(const px of [-0.26,0.26])for(const pz of [0.45,-0.45])box(g,0.035,rackH-0.1,0.035,post,px,rackH/2,pz);
-  const lab=new T.Mesh(new T.PlaneGeometry(0.22,0.07),new T.MeshBasicMaterial({map:cnv(160,52,(c,w,h)=>{c.fillStyle='#f4f1ea';c.fillRect(0,0,w,h);c.fillStyle='#1d1b18';c.font='700 30px monospace';c.fillText(name,26,38);})}));
+  const lab=new T.Mesh(new T.PlaneGeometry(0.42,0.08),new T.MeshBasicMaterial({map:cnv(300,58,(c,w,h)=>{c.fillStyle='#f4f1ea';c.fillRect(0,0,w,h);c.fillStyle='#1d1b18';c.font='700 26px monospace';c.fillText(name,14,38);c.font='600 20px sans-serif';c.fillStyle='#5c564b';c.fillText(RACKCUST[name].s,96,37);})}));
   lab.position.set(0,rackH+0.04,0.5);g.add(lab);
-  const dev=[[2,'2u'],[4,'2u'],[6,'2u'],[8,'blank'],[12,'blank'],[14,'1u'],[15,'1u'],[17,'sto'],[30,'blank'],[40,'sw']];
+  const dev=LAYOUT[name];
   const fm={};const devs=[];
-  dev.forEach(([u,k])=>{const hU=k==='2u'?2:k==='sto'?4:1;fm[k]=fm[k]||fTex(k);const side=M(0x2a2d31,{metalness:.3,roughness:.5});
+  dev.forEach(([u,k])=>{const hU=HU[k]||1;fm[k]=fm[k]||fTex(k);const side=M(0x2a2d31,{metalness:.3,roughness:.5});
     const m=box(g,0.48,hU*RU-0.003,0.8,[side,side,side,side,M(0xffffff,{map:fm[k],roughness:.55}),k==='blank'?M(0x1b1e21):devRear],0,uY(u)+hU*RU/2,0.02);devs.push(m);});
-  if(!open){const dm=M(0xffffff,{map:tDoor,roughness:.5,metalness:.2});box(g,0.6,rackH-0.04,0.02,dm,0,rackH/2,0.51);box(g,0.6,rackH-0.04,0.02,dm,0,rackH/2,-0.51);}
-  else{const hinge=new T.Group();hinge.position.set(-0.3,0,0.52);g.add(hinge);box(hinge,0.6,rackH-0.04,0.02,M(0xffffff,{map:tDoor,roughness:.5}),0.3,rackH/2,0);hinge.rotation.y=-1.85;}
+  const dm=M(0xffffff,{map:tDoor,roughness:.5,metalness:.2});
+  if(!open)box(g,0.6,rackH-0.04,0.02,dm,0,rackH/2,-0.51);
+  const hinge=new T.Group();hinge.position.set(-0.3,0,0.52);g.add(hinge);box(hinge,0.6,rackH-0.04,0.02,dm,0.3,rackH/2,0);box(hinge,0.02,0.16,0.03,M(0x9aa1a6,{metalness:.7}),0.56,1.0,0.02);if(name==='R08')box(hinge,0.05,0.07,0.03,M(0xc9a227,{metalness:.7}),0.52,1.18,0.02);
+  g.userData={door:hinge,doorT:open?-1.85:0,devs,name};hinge.rotation.y=g.userData.doorT;
   racks[name]=g;return g;
 }
 ['R05','R06','R07','R08','R09'].forEach((n,i)=>makeRack(n,(i-2)*0.62,n==='R07'));
@@ -232,20 +329,59 @@ const bench=new T.Group();bench.position.set(2.5,0,1.7);bench.rotation.y=-0.25;r
 const wood=M(0x8d6a49,{roughness:.7});
 box(bench,1.6,0.05,0.7,wood,0,0.75,0);for(const x of [-0.75,0.75])for(const z of [-0.3,0.3])box(bench,0.05,0.75,0.05,M(0x3b3f44),x,0.375,z);
 box(bench,1.5,0.03,0.6,M(0x3b3f44),0,0.25,0);
-const clip=new T.Group();clip.position.set(-0.45,0.78,0.05);clip.rotation.y=0.25;bench.add(clip);
+const clip=new T.Group();clip.position.set(-0.2,0.78,0.12);clip.rotation.y=0.25;bench.add(clip);
 box(clip,0.26,0.01,0.34,M(0x6b4f33),0,0,0);const paper=new T.Mesh(new T.PlaneGeometry(0.23,0.3),M(0xffffff,{map:tPaper,roughness:.9}));paper.rotation.x=-Math.PI/2;paper.position.y=0.007;clip.add(paper);box(clip,0.08,0.02,0.03,M(0x9aa1a6,{metalness:.7}),0,0.01,-0.16);
 const lap=new T.Group();lap.position.set(0.25,0.775,0);bench.add(lap);
 box(lap,0.42,0.02,0.3,M(0x2b2f33,{metalness:.4}),0,0,0.02);
 let scrMat=new T.MeshBasicMaterial({map:screenTex('---')});
 const lid=new T.Group();lid.position.set(0,0.01,-0.13);lid.rotation.x=-0.25;lap.add(lid);box(lid,0.42,0.28,0.012,M(0x2b2f33,{metalness:.4}),0,0.14,0);
 const scr=new T.Mesh(new T.PlaneGeometry(0.39,0.25),scrMat);scr.position.set(0,0.14,0.007);lid.add(scr);
-box(bench,0.22,0.12,0.16,M(0xe8e2d5),0.62,0.84,-0.1);box(bench,0.18,0.02,0.02,M(0x1d1b18),0.62,0.9,-0.02);
-const tb=box(bench,0.3,0.12,0.16,M(0x9b2a1f,{roughness:.45}),-0.05,0.84,-0.22);
+const lp=new T.Group();lp.position.set(0.62,0.775,-0.1);bench.add(lp);box(lp,0.22,0.12,0.16,M(0xe8e2d5),0,0.06,0);box(lp,0.18,0.02,0.02,M(0x1d1b18),0,0.12,0.08);
+const lpTape=box(lp,0.03,0.0012,0.12,M(0xfffdf4),0,0.075,0.14);lpTape.scale.z=0.01;lpTape.visible=false;let lpOut=0;
+const LABELS=[{c:'P-A07',f:'SRV-11 PSU1',t:'PDU-A #07',k:'전원'},{c:'P-B07',f:'SRV-11 PSU2',t:'PDU-B #07',k:'전원'},{c:'F-1014',f:'SRV-11 NIC1',t:'TOR Te1/0/14',k:'광'}];
+let labIdx=0, printQ=[], printed=[];
+function labTex(L,n){return cnv(360,100,(g,w,h)=>{g.fillStyle='#fdfdfb';g.fillRect(0,0,w*.62,h);g.fillStyle='rgba(220,230,235,.55)';g.fillRect(w*.62,0,w*.38,h);g.fillStyle='#111';g.font='700 34px monospace';g.fillText(L.c,14,44);g.font='500 15px monospace';g.fillText((n===1?L.f:L.t),14,72);g.fillText(n+'/2',w*.62-40,90);for(let i=0;i<26;i++){g.fillRect(150+i*3.2,14,i%3?1.2:2.2,18);}});}
+function dropLabel(L,n){const k=printed.length;const m=new T.Mesh(new T.PlaneGeometry(0.11,0.03),new T.MeshStandardMaterial({map:labTex(L,n),roughness:.6,transparent:true}));m.rotation.x=-Math.PI/2;m.rotation.z=0.04*(k%2?1:-1);m.position.set(0.3+(k%2)*0.13,0.7765,0.2+Math.floor(k/2)*0.045);m.castShadow=false;m.receiveShadow=true;bench.add(m);printed.push(m);prop(m,{k:'라벨',n:L.c+' 라벨 '+n+'/2',open:()=>openLabel(L,n)});}
+function openLabel(L,n){
+  $('doc').innerHTML=`<button class="x" id="dx">닫기 · Esc</button><div class="org">라벨 프린터 · 자가 라미네이팅 케이블 라벨</div><h2>${L.c}</h2><div class="no">${L.k} 케이블 · ${L.f} ↔ ${L.t} · ${n} / 2</div>
+  <div class="lbig"><div class="lp"><b>${L.c}</b><span>${n===1?L.f:L.t}</span><span class="lt">↔ ${n===1?L.t:L.f}</span><i></i><em>${n}/2</em></div><div class="ll">투명 라미네이트 부분<br>(케이블에 감아 글자 위를 덮음)</div></div>
+  <h4>붙이는 곳</h4><table><tr><th>1/2</th><td class="${n===1?'ok':''}">서버 쪽 끝 · ${L.f} 커넥터에서 5cm</td></tr><tr><th>2/2</th><td class="${n===2?'ok':''}">반대쪽 끝 · ${L.t} 커넥터에서 5cm</td></tr></table>
+  <div class="pen"><b>왜 두 장일까요</b>케이블은 양 끝이 서로 멀리 떨어져 있습니다. 한쪽에만 붙이면 반대편에서 이 선이 어디서 왔는지 알 수 없습니다. 같은 번호를 양 끝에 붙여야 어느 쪽에서 봐도 찾을 수 있습니다.</div>`;
+  $('zoom').hidden=false;$('dx').focus();$('dx').onclick=closeDoc;}
+const tbox=new T.Group();tbox.position.set(-0.58,0.775,-0.18);bench.add(tbox);
+const red=M(0x7d1a12,{roughness:.4});box(tbox,0.34,0.12,0.18,red,0,0.06,0);
+const tlid=new T.Group();tlid.position.set(0,0.12,-0.09);tbox.add(tlid);box(tlid,0.34,0.02,0.18,red,0,0.01,0.09);box(tlid,0.14,0.02,0.02,M(0x222),0,0.04,0.09);
+let tOpen=false;const tools=new T.Group();bench.add(tools);tools.position.set(-0.55,0.775,0.14);tools.scale.setScalar(1.5);tools.visible=false;
+const drv=new T.Group();drv.position.set(-0.17,0.02,0);tools.add(drv);cyl(drv,0.012,0.08,M(0xf2c200),0,0,0).rotation.z=Math.PI/2;cyl(drv,0.003,0.09,M(0xb9c0c6,{metalness:.8}),0.085,0,0).rotation.z=Math.PI/2;
+const cut=new T.Group();cut.position.set(0.0,0.012,0.03);tools.add(cut);box(cut,0.1,0.015,0.025,M(0xf2c200),0,0,0);box(cut,0.03,0.004,0.012,M(0xd5d8da,{metalness:.8}),0.065,0,0);
+const clamp=new T.Group();clamp.position.set(0.15,0.015,0.0);clamp.rotation.x=-Math.PI/2;tools.add(clamp);box(clamp,0.05,0.12,0.025,M(0xe0a020),0,0,0);box(clamp,0.038,0.03,0.006,M(0x1c2a22),0,0.02,0.014);const jaw=new T.Mesh(new T.TorusGeometry(0.03,0.007,8,20,Math.PI*1.6),M(0x222));jaw.position.set(0,0.09,0);jaw.rotation.z=-0.5;clamp.add(jaw);
 
 /* ---------- 케이블·공기 ---------- */
 const cableG=new T.Group();R07.add(cableG);
-function tube(pts,col,r){const c=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(...p)));const m=new T.Mesh(new T.TubeGeometry(c,40,r||0.012,8),M(col,{roughness:.5}));m.castShadow=true;cableG.add(m);return m;}
+function tube(pts,col,r,info){const c=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(...p)));const m=new T.Mesh(new T.TubeGeometry(c,40,r||0.012,8),M(col,{roughness:.5}));m.castShadow=true;cableG.add(m);if(info){m.userData.prop={k:'신규 케이블',n:info.lab+' · '+info.from+' → '+info.to,open:()=>openCable(info)};const e=pts[pts.length-1],b0=pts[0];[b0,e].forEach(q=>{const t=box(cableG,0.003,0.012,0.022,M(0xfffdf4),q[0],q[1]+0.012,q[2]-0.02);t.userData.prop=m.userData.prop;});}return m;}
 const flow=[];const flowG=new T.Group();R07.add(flowG);
+/* 기존 고객 배선 (가상 고객사 2곳) */
+const CUST=[
+ {id:'A',name:'모의커머스 (가상)',col:0x8e5bd6,hex:'#8e5bd6',devs:[[0,2,2,'MC-WEB-01'],[1,4,2,'MC-WEB-02'],[2,6,2,'MC-WEB-03'],[5,14,1,'MC-API-01'],[6,15,1,'MC-API-02'],[7,17,4,'MC-STOR-01']],pa:[0,1,3,7,8,9],tp:[1,2,3,7,8,9]}];
+const custG=new T.Group();R07.add(custG);const CABLES=[];
+function ctube(pts,col,r){const c=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(...p)),false,'catmullrom',0.2);const m=new T.Mesh(new T.TubeGeometry(c,48,r,6),M(col,{roughness:.55}));m.castShadow=true;custG.add(m);return m;}
+function tag(x,y,z,col){box(custG,0.003,0.012,0.022,M(col),x,y,z);}
+let dataN=0;
+CUST.forEach(C=>C.devs.forEach(([di,u,h,nm],k)=>{
+  const y=uY(u)+h*RU/2, zr=-0.39;
+  [['A',-1,0xb5651d],['B',1,0x2f6f99]].forEach(([side,sg,col])=>{
+    const oi=C.pa[k], oy=0.3+oi*0.12, sx=0.17*sg, px=0.252*sg;
+    const m=ctube([[sx,y,zr],[sx,y,-0.44],[(sx+px)/2,(y+oy)/2,-0.45],[px,oy,-0.42],[px,oy,-0.4]],col,0.0032);
+    box(custG,0.012,0.018,0.016,M(0x15171a),px-0.004*sg,oy,-0.4);tag(sx+0.003*sg,y,-0.445,0xf4f1ea);tag(px-0.012*sg,oy+0.012,-0.42,0xf4f1ea);
+    CABLES.push({m,C,dev:nm,u,hex:side==='A'?'#b5651d':'#2f6f99',kind:'전원 C13–C14',from:nm+' PSU'+(side==='A'?1:2),to:'PDU-'+side+' #'+String(oi+1).padStart(2,'0'),lab:'P-'+side+String(oi+1).padStart(2,'0')});
+  });
+  const off=(dataN++)*0.009, xr=-0.04-off, yt=uY(40)+RU/2, xp=-0.2+C.tp[k]*0.022;
+  const m=ctube([[0.02,y+0.005,zr],[0.02,y+0.005,-0.45],[xr,y+0.01,-0.47],[xr,yt-0.06,-0.47],[xp,yt,-0.44],[xp,yt,-0.395]],C.col,0.0026);
+  tag(0.024,y+0.005,-0.44,0xf4f1ea);tag(xp,yt-0.015,-0.41,0xf4f1ea);
+  CABLES.push({m,C,dev:nm,u,hex:C.hex,kind:'광 LC-LC (OM4)',from:nm+' NIC1',to:'TOR Te1/0/'+C.tp[k],lab:'F-10'+String(C.tp[k]).padStart(2,'0')});
+}));
+/* 케이블 묶음 벨크로 */
+[0.5,0.9,1.3,1.7].forEach(yv=>box(custG,0.07,0.012,0.03,M(0x22252a),-0.07,yv,-0.47));
 for(let i=0;i<14;i++){const m=new T.Mesh(new T.ConeGeometry(0.025,0.07,10),new T.MeshBasicMaterial({color:0x5fb3e6,transparent:true,opacity:.9}));flowG.add(m);flow.push({m,t:i/14,x:(i%7-3)*0.06});}
 
 /* ---------- 단계 ---------- */
@@ -253,7 +389,7 @@ const STEPS=[
  {t:'작업지시서 확인',d:'작업대의 작업지시서를 집어 들고 승인 상태와 범위를 확인합니다. 승인 없이 시작한 작업은 현장에서 바로 멈춥니다.',
   why:'한 서버실에 여러 고객 장비가 같이 돌아갑니다. 승인된 시간·위치·범위를 벗어난 작업은 남의 서비스를 건드릴 수 있어서, 승인된 작업지시서가 모든 작업의 출발점입니다.',
   cam:[0.95,0.95,6.8,[2.4,0.8,1.6]], hot:()=>clip, wif:'승인 전에 시작하면?',
-  rows:w=>[['작업 번호','WO-24113'],['변경 승인',w?'대기 중 → 작업 중단':'승인 완료',w?'bad':'ok'],['위치','R07 · U10–11'],['작업 시간','22:00 – 24:00'],['롤백','서버 제거 · 포트 원복']],
+  rows:w=>[['작업 번호','WO-24113'],['고객사','모의커머스 (가상) · 전용 랙 R07'],['변경 승인',w?'대기 중 → 작업 중단':'승인 완료',w?'bad':'ok'],['위치','R07 · U10–11'],['작업 시간','22:00 – 24:00'],['롤백','서버 제거 · 포트 원복']],
   note:'작업 전에 보는 것: 승인 · 위치 · 시간 · 되돌리는 방법',
   bub:w=>[[clip,[0,0.12,0],w?'변경 미승인 · 작업 중단':'작업지시서 · 눌러서 확인',w?'bad':'tap']]},
  {t:'입고 검수',d:'카트 위 박스를 열고 서버 라벨의 시리얼을 입고서와 대조합니다. 레일 키트와 전원 코드 2개를 확인하고 자산 라벨을 붙입니다.',
@@ -264,26 +400,26 @@ const STEPS=[
   bub:w=>[[carton,[0,0.45,0],w?'S/N 불일치 · 설치 보류':'박스 열기 · S/N 대조',w?'bad':'tap']]},
  {t:'설치 위치·용량 확인',d:'R07의 U10–11이 비었는지, PDU A/B에 여유가 있는지, TOR 스위치 포트가 비었는지 확인합니다. 한쪽 전원만 남아도 80% 아래여야 합니다.',
   why:'공간(U)·전력·냉각·포트를 각각 따져서 가장 빠듯한 것이 한계입니다. 전력은 A/B 중 한쪽만 남았을 때가 기준이라, 정전 때도 차단기가 내려가지 않습니다.',
-  cam:[0.35,1.05,7.2,[0,1.0,-0.6]], hot:()=>ghost, wif:'A 전원이 끊기면?',
+  cam:[0.35,1.05,4.4,[0,0.85,-0.6]], hot:()=>ghost, wif:'A 전원이 끊기면?',
   rows:w=>[['빈 공간','U10–11 · 2U','ok'],['서버 소비 전력','450 W ≈ 2.0 A'],['TOR 포트','Te1/0/14 비어 있음','ok'],['판정',w?'B 혼자 10.0A · 63% → 가능':'증설 가능',w?'warn':'ok']],
   bars:w=>w?[['PDU-A',0,'입력 OFF','#6b655a'],['PDU-B',10/16,'10.0A · 63%','#f2b44a']]:[['PDU-A',5.1/16,'5.1A · 32%','#3fbf86'],['PDU-B',4.9/16,'4.9A · 31%','#3fbf86']],
   note:'정격 16A · 주황 선 = 80% 기준 · 서버 추가 후 값',
   bub:w=>[[ghost,[0,0.08,0.45],'U10–11 · 눌러서 확인','tap']]},
  {t:'레일 설치·서버 장착',d:'U10–11에 레일을 앞뒤로 고정하고, 두 사람이 서버를 들어 레일에 밀어 넣습니다. 서버 앞면이 콜드 아일(파란 타공 타일)을 봐야 합니다.',
   why:'서버 팬은 앞에서 빨아들여 뒤로 내보냅니다. 거꾸로 달면 뜨거운 바람을 차가운 통로에 뿜어서 옆 서버들까지 데웁니다.',
-  cam:[0.6,1.1,5.2,[0,0.6,-0.3]], hot:()=>srvBody, wif:'서버를 거꾸로 꽂으면?',
+  cam:[0.55,1.12,2.5,[0,0.55,-0.45]], hot:()=>srvBody, wif:'서버를 거꾸로 꽂으면?',
   rows:w=>[['레일','U10–11 고정','ok'],['서버 방향',w?'뒤집힘 (배기 → 콜드 아일)':'앞면 → 콜드 아일',w?'bad':'ok'],['옆 서버 입구 온도',w?'31 ℃':'24 ℃',w?'bad':'ok'],['권장 입구 온도','18 – 27 ℃']],
   note:'파란 화살표 = 차가운 공기 · 빨간 화살표 = 뜨거운 공기',
   bub:w=>[[srvBody,[0,0.08,0.4],w?'거꾸로 장착 · 뜨거운 공기 역류':'서버 밀어 넣기',w?'bad':'tap']]},
  {t:'전원·광 케이블 연결',d:'랙 뒤로 돌아가 PSU1은 PDU-A(주황), PSU2는 PDU-B(파랑)에 꽂습니다. 광 케이블은 TOR 스위치 Te1/0/14로 올리고 양 끝에 라벨을 붙입니다.',
   why:'전원을 두 줄 받는 이유는 한 줄이 끊겨도 버티기 위해서입니다. 케이블 라벨은 새벽 장애 때 다른 엔지니어가 선을 찾게 해 줍니다.',
-  cam:[3.08,1.05,3.3,[0,0.62,-1.35]], hot:()=>pduB, wif:'두 PSU를 같은 PDU에 꽂으면?',
-  rows:w=>[['PSU1','→ PDU-A','ok'],['PSU2',w?'→ PDU-A':'→ PDU-B',w?'bad':'ok'],['이중화',w?'없음 (A 장애 = 서버 다운)':'A/B 분리',w?'bad':'ok'],['광 케이블','Te1/0/14','ok'],['라벨','2 / 2','ok']],
-  note:'뒤에서 본 모습 · 주황 = A 전원 · 파랑 = B 전원 · 노랑 = 광',
+  cam:[2.95,1.08,2.3,[0,0.75,-1.35]], hot:()=>pduB, wif:'두 PSU를 같은 PDU에 꽂으면?',
+  rows:w=>[['PSU1','→ PDU-A','ok'],['PSU2',w?'→ PDU-A':'→ PDU-B',w?'bad':'ok'],['이중화',w?'없음 (A 장애 = 서버 다운)':'A/B 분리',w?'bad':'ok'],['광 케이블','Te1/0/14','ok'],['라벨','2 / 2','ok'],['기존 모의커머스 선','18개 · 건드리지 않음']],
+  note:'뒤에서 본 모습 · 주황 = A 전원 · 파랑 = B 전원 · 노랑 = 신규 광 · 보라 = 기존 모의커머스 광',
   bub:w=>[[pduA,[0,-0.2,0],'PDU-A','none'],[pduB,[0,-0.35,0],w?'PSU2도 A에 꽂힘 · 이중화 없음':'PSU2 → PDU-B',w?'bad':'tap']]},
  {t:'전원 투입·상태 점검',d:'앞으로 돌아와 전원 버튼을 누르고 부팅 자가 점검(POST)이 끝나길 기다립니다. 전면 LED와 원격 관리 화면(BMC)에서 숫자로 확인합니다.',
   why:'켜졌다고 끝이 아닙니다. 전원 한쪽이 빠진 채 켜져도 겉보기엔 정상이라, 관리 화면의 숫자로 확인해야 잡힙니다.',
-  cam:[0.25,1.0,3.4,[0,0.55,-0.2]], hot:()=>srvBody, wif:'PSU 하나가 덜 꽂혔다면?',
+  cam:[0.3,1.08,1.7,[0,0.53,-0.45]], hot:()=>srvBody, wif:'PSU 하나가 덜 꽂혔다면?',
   rows:w=>[['POST','완료','ok'],['PSU',w?'1 / 2 · PSU2 입력 없음':'2 / 2',w?'warn':'ok'],['입구 온도','24 ℃','ok'],['팬','6 / 6 정상','ok'],['전면 LED',w?'주황':'초록',w?'warn':'ok']],
   note:'BMC = 서버 안의 작은 관리용 컴퓨터',
   bub:w=>[[srvBody,[0.19,0.03,0.4],w?'LED 주황 · 이중화 손실':'전원 ON · LED 초록',w?'warn':'tap']]},
@@ -298,19 +434,70 @@ const CLK=['22:06','22:14','22:23','22:38','22:51','23:04','23:17'];
 let cur=0, wif=false, done=STEPS.map(()=>false);
 
 /* ---------- UI ---------- */
+const DOCN=['작업지시서','입고 검수서','위치·용량 검토서','장착 체크리스트','케이블 연결표','전원 점검표','관제 등록서'];
+const KEY=[w=>[['승인',w?'대기':'완료'],['위치','R07 · U10–11'],['시간','22:00–24:00']],
+ w=>[['S/N',w?'JX7-4812-K ✕':'JX7-4821-K'],['구성품','레일 2 · 코드 2'],['자산번호','AST-0718']],
+ w=>[['빈 공간','U10–11'],['한쪽 장애 시','10.0A / 16A (63%)'],['포트','Te1/0/14']],
+ w=>[['방향',w?'뒤집힘 ✕':'앞면 → 콜드 아일'],['레일','U10–11'],['인원','2명']],
+ w=>[['PSU1','PDU-A'],['PSU2',w?'PDU-A ✕':'PDU-B'],['광','Te1/0/14']],
+ w=>[['POST','완료'],['PSU',w?'1/2 ✕':'2/2'],['입구 온도','24℃']],
+ w=>[['장비명','R07-SRV-11'],['SNMP',w?'미등록 ✕':'수집 중'],['보고',w?'보류':'완료']]];
+let folderOpen=true;
 function renderLesson(){
   const s=STEPS[cur];
-  $('lesson').innerHTML=`<div class="kick"><span>WO-24113 · 서버 1대 증설</span><b>0${cur+1} / 07</b></div><h1>${s.t}</h1><p class="desc">${s.d}</p>
-  <ol>${STEPS.map((x,i)=>`<li tabindex="0" data-i="${i}" class="${i===cur?'cur':done[i]?'done':''}"><span class="n">${String(i+1).padStart(2,'0')}</span><span><span class="t">${x.t}</span></span></li>`).join('')}</ol>
-  <details class="why"><summary>왜 이렇게 할까요</summary><p>${s.why}</p></details>
-  <button class="next" id="nx">${cur<6?'다음: '+STEPS[cur+1].t+' →':'처음부터 다시 ↺'}</button>`;
+  $('lesson').classList.toggle('closed',!folderOpen);
+  $('lesson').innerHTML=`<button class="fspine" id="fopen" aria-label="작업 파일 펴기"><span class="lb">WO-24113 · R07 서버 증설</span><span class="st2">${String(cur+1).padStart(2,'0')} ${DOCN[cur]}</span><span class="op">펴기 ▸</span></button><button class="fold" id="fclose" aria-label="작업 파일 접기">◂ 접기</button><div class="ftab"><span>WO-24113 · R07 서버 증설</span></div><div class="fprong"></div>
+  <button class="sheet" id="sheet" aria-label="${DOCN[cur]} 크게 보기"><span class="dh"><b>${DOCN[cur]}</b><span>문서 ${cur+1} / 7</span></span>
+   <h1>${s.t}</h1><p>${s.d}</p><dl>${KEY[cur](wif).map(k=>`<dt>${k[0]}</dt><dd class="${/✕/.test(k[1])?'bad':''}">${k[1]}</dd>`).join('')}</dl><span class="zm">눌러서 크게 보기 ⤢</span></button>
+  <div class="reg"><h3>철 목록</h3><ol>${STEPS.map((x,i)=>`<li tabindex="0" data-i="${i}" class="${i===cur?'cur':''}"><span class="n">${String(i+1).padStart(2,'0')}</span><span>${DOCN[i]}</span>${done[i]?'<span class="st dn">완료</span>':i===cur?'<span class="st now">작업 중</span>':'<span></span>'}</li>`).join('')}</ol></div>
+  <button class="next" id="nx">${cur<6?'다음 문서: '+DOCN[cur+1]+' →':'처음부터 다시 ↺'}</button>`;
   $('nx').onclick=()=>go(cur<6?cur+1:0);
+  $('sheet').onclick=()=>openDoc(cur);
+  $('fclose').onclick=()=>{folderOpen=false;$('lesson').classList.add('closed');$('fopen').focus();};
+  $('fopen').onclick=()=>{folderOpen=true;$('lesson').classList.remove('closed');};
   $('lesson').querySelectorAll('li').forEach(li=>{li.onclick=()=>go(+li.dataset.i);li.onkeydown=e=>{if(e.key==='Enter')go(+li.dataset.i);};});
 }
+const tr=rows=>`<table>${rows.map(r=>`<tr><th>${r[0]}</th><td class="${r[2]||''}">${r[1]}</td></tr>`).join('')}</table>`;
+const ck=(items,n)=>`<ul class="ck">${items.map((t,i)=>`<li class="${i<n?'y':''}">${t}</li>`).join('')}</ul>`;
+const signBox=(st)=>`<div class="sign"><div>작업자<b>${st?'<span class="stamp">서명</span>':''}</b></div><div>검토<b>${st?'<span class="stamp">확인</span>':''}</b></div><div>승인<b>${st===2?'<span class="stamp no">대기</span>':st?'<span class="stamp">승인</span>':''}</b></div></div>`;
+function rackmap(){let h='';for(let u=14;u>=1;u--){const t=u===10||u===11, e=[1,3,5,7,8,9,12,13].includes(u)&&!t;h+=`<span>U${String(u).padStart(2,'0')}</span><i class="${t?'t':e?'e':''}">${t?'▶ 신규 서버 NX-2400 (2U)':[2,4,6].includes(u)?'SRV (2U)':u===14?'SW 1U':''}</i>`;}return `<div class="rackmap">${h}</div>`;}
+const DOCS=[
+ w=>`<h4>작업 개요</h4>${tr([['작업 번호','WO-24113'],['고객사','모의커머스 (가상) · 전용 랙 R07'],['작업 구분','신규 서버 증설 (1대) · MC-WEB-04'],['요청 부서','고객지원팀 (가상)'],['설치 위치','HALL B · ROW 3 · R07 · U10–11','m'],['작업 시간','2026-11-22 22:00 – 24:00','m'],['영향 범위','R07 랙 내부 · 기존 서비스 영향 없음'],['변경 승인',w?'승인 대기 — 작업 시작 불가':'승인 완료 (CR-0931)',w?'bad':'ok']])}
+   <h4>작업 절차</h4>${ck(['입고 장비 검수','설치 위치·전력·포트 확인','레일 설치 및 서버 장착','전원 A/B · 광 케이블 연결','전원 투입 및 상태 점검','관제 등록 및 완료 보고'],0)}
+   <h4>롤백 방법</h4><p>이상 발생 시 서버 전원 차단 → 케이블 분리 → 서버·레일 제거 → TOR 포트 Te1/0/14 비활성화.</p>${signBox(w?2:1)}`,
+ w=>`<h4>품목</h4><table><tr><th style="width:auto">품목</th><th style="width:auto">예정</th><th style="width:auto">실제</th></tr><tr><td>서버 NX-2400 (2U)</td><td>1</td><td class="ok">1</td></tr><tr><td>레일 키트</td><td>1</td><td class="ok">1</td></tr><tr><td>전원 코드 (C13–C14)</td><td>2</td><td class="ok">2</td></tr><tr><td>전면 베젤</td><td>1</td><td class="ok">1</td></tr></table>
+   <h4>시리얼 대조</h4>${tr([['입고서 S/N','JX7-4821-K','m'],['장비 라벨 S/N',w?'JX7-4812-K (불일치 — 설치 보류)':'JX7-4821-K (일치)',w?'bad m':'ok m'],['외관 상태','박스 파손 없음 · 충격 표시 정상'],['자산 번호','AST-0718 (라벨 부착)','m']])}${signBox(1)}`,
+ w=>`<h4>랙 도면 (R07 일부)</h4>${rackmap()}
+   <h4>전력 계산 (정격 16A · 기준 80% = 12.8A)</h4><table><tr><th style="width:auto">구분</th><th style="width:auto">PDU-A</th><th style="width:auto">PDU-B</th></tr><tr><td>현재</td><td class="m">4.1 A</td><td class="m">3.9 A</td></tr><tr><td>신규 서버 (450W ≈ 2.0A)</td><td class="m">+1.0 A</td><td class="m">+1.0 A</td></tr><tr><td>증설 후 정상</td><td class="m">5.1 A (32%)</td><td class="m">4.9 A (31%)</td></tr><tr class="${w?'hl':''}"><td>한쪽 장애 시</td><td class="m">${w?'0 A (입력 OFF)':'—'}</td><td class="m ${w?'ok':''}">10.0 A (63%)</td></tr></table>
+   <h4>네트워크</h4>${tr([['TOR 스위치','R07-TOR-01'],['할당 포트','Te1/0/14 (비어 있음)','m'],['판정','증설 가능','ok']])}`,
+ w=>`<h4>장착 전</h4>${ck(['레일 길이를 랙 깊이에 맞춤','앞뒤 레일 같은 U 높이(U10)에 고정','레일 잠금 탭 확인'],3)}
+   <h4>장착</h4>${ck(['2인 1조로 들어 올리기 (24.6kg)','서버 앞면이 콜드 아일 쪽','레일에 끝까지 밀어 “딸깍” 확인','손잡이 나사 고정'],w?0:4)}
+   ${w?'<p class="bad">서버가 뒤집혀 장착됨 → 배기가 콜드 아일로 나옴. 옆 서버 입구 31℃.</p>':''}`,
+ w=>`<h4>연결표</h4><table><tr><th style="width:auto">From</th><th style="width:auto">To</th><th style="width:auto">케이블</th><th style="width:auto">라벨</th></tr>
+   <tr><td class="m">SRV-11 PSU1</td><td class="m">PDU-A #07</td><td>전원 C13</td><td class="m">P-A07</td></tr>
+   <tr class="${w?'hl':''}"><td class="m">SRV-11 PSU2</td><td class="m ${w?'bad':''}">${w?'PDU-A #08':'PDU-B #07'}</td><td>전원 C13</td><td class="m">${w?'P-A08':'P-B07'}</td></tr>
+   <tr><td class="m">SRV-11 NIC1</td><td class="m">TOR Te1/0/14</td><td>광 LC-LC (OM4)</td><td class="m">F-1014</td></tr></table>
+   ${w?'<p class="bad">PSU 두 개가 모두 PDU-A → A가 끊기면 서버가 꺼집니다.</p>':''}
+   <h4>기존 고객 선 · 변경 금지 (${CABLES.length}개)</h4><table><tr><th style="width:auto">고객사</th><th style="width:auto">From</th><th style="width:auto">To</th><th style="width:auto">라벨</th></tr>${CABLES.map(c=>`<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c.C.hex};margin-right:6px"></span>${c.C.id}</td><td class="m">${c.from}</td><td class="m">${c.to}</td><td class="m">${c.lab}</td></tr>`).join('')}</table>`,
+ w=>`<h4>점검 결과</h4>${tr([['POST','완료 (오류 없음)','ok'],['PSU',w?'1 / 2 — PSU2 입력 없음':'2 / 2 정상',w?'bad':'ok'],['입구 온도','24 ℃','ok'],['팬','6 / 6 정상','ok'],['전면 LED',w?'주황':'초록',w?'bad':'ok'],['BMC 접속','10.20.70.111 (가상)','m']])}${signBox(1)}`,
+ w=>`<h4>관제 등록</h4>${tr([['장비명','R07-SRV-11','m'],['관리 IP','10.20.7.11 (가상)','m'],['ping','0.4 ms','ok'],['SNMP 수집',w?'미등록 — 알람이 오지 않음':'정상 수집',w?'bad':'ok'],['알람 테스트',w?'—':'PSU 경보 수신 확인',w?'':'ok']])}
+   <h4>마무리</h4>${ck(['자산 DB 위치 갱신 (R07 · U10–11)','작업 사진 첨부','작업 완료 보고'],w?1:3)}${signBox(w?2:1)}`
+];
+function openDoc(i){
+  const s=STEPS[i];
+  $('doc').innerHTML=`<button class="x" id="dx">닫기 · Esc</button><div class="org">IDC 운영팀 · HALL B · 가상 문서</div><h2>${DOCN[i]}</h2><div class="no">WO-24113 · 문서 ${i+1} / 7 · ${s.t}</div>${DOCS[i](i===cur&&wif)}<div class="pen"><b>왜 이렇게 할까요</b>${s.why}</div>`;
+  $('zoom').hidden=false;$('dx').focus();$('dx').onclick=closeDoc;
+}
+function closeDoc(){$('zoom').hidden=true;}
+$('zoom').addEventListener('click',e=>{if(e.target.id==='zoom')closeDoc();});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeDoc();});
+let instrOpen=true;
 function renderInstr(){
   const s=STEPS[cur];
   const bars=s.bars?`<div class="bars">${s.bars(wif).map(b=>`<div><span>${b[0]}</span><i><b style="width:${b[1]*100}%;background:${b[3]}"></b></i><span>${b[2]}</span></div>`).join('')}</div>`:'';
-  $('instr').innerHTML=`<h2>INSTRUMENTS · ${String(cur+1).padStart(2,'0')}</h2>${bars}${s.rows(wif).map(r=>`<div class="row"><span>${r[0]}</span><span class="${r[2]||''}">${r[1]}</span></div>`).join('')}<p class="note">${s.note}</p>`;
+  $('instr').classList.toggle('closed',!instrOpen);
+  $('instr').innerHTML=`<button class="ifold" id="ifold" aria-expanded="${instrOpen}">${instrOpen?'접기 ▸':'◂ 계측 펴기'}</button><h2>INSTRUMENTS · ${String(cur+1).padStart(2,'0')}</h2>${bars}${s.rows(wif).map(r=>`<div class="row"><span>${r[0]}</span><span class="${r[2]||''}">${r[1]}</span></div>`).join('')}<p class="note">${s.note}</p>`;
+  $('ifold').onclick=()=>{instrOpen=!instrOpen;renderInstr();};
 }
 const bubEls=[];
 function renderBubs(){
@@ -331,26 +518,44 @@ $('done').onclick=()=>{done[cur]=true;if(cur<6)go(cur+1);else render();};
 
 /* ---------- 단계별 장면 ---------- */
 let srvTarget=new T.Vector3(), srvRot=0;
+const NEWC={a:{lab:'P-A07',from:'SRV-11 PSU1',to:'PDU-A #07',kind:'전원 C13–C14',hex:'#f08a2c',len:'1.0 m',isNew:1},
+ a2:{lab:'P-A08',from:'SRV-11 PSU2',to:'PDU-A #08 (잘못 꽂음)',kind:'전원 C13–C14',hex:'#f08a2c',len:'1.0 m',isNew:1,bad:'두 PSU가 모두 A 전원 — 이중화가 없습니다.'},
+ b:{lab:'P-B07',from:'SRV-11 PSU2',to:'PDU-B #07',kind:'전원 C13–C14',hex:'#4fa8d9',len:'1.0 m',isNew:1},
+ u:{lab:'P-B07',from:'SRV-11 PSU2',to:'(PDU에 안 꽂힘)',kind:'전원 C13–C14',hex:'#4fa8d9',len:'1.0 m',isNew:1,bad:'끝이 PDU에 꽂혀 있지 않습니다.'},
+ f:{lab:'F-1014',from:'SRV-11 NIC1',to:'TOR Te1/0/14',kind:'광 LC-LC (OM4)',hex:'#e8d25a',len:'2.0 m',isNew:1}};
+function openCable(c){
+  const fib=c.kind.startsWith('광'), end=(x,lbl,side)=>fib
+    ?`<rect x="${x}" y="70" width="44" height="30" rx="4" fill="#d8d4c8" stroke="#555"/><rect x="${x+(side?-16:44)}" y="76" width="16" height="7" fill="#8a8f93"/><rect x="${x+(side?-16:44)}" y="87" width="16" height="7" fill="#8a8f93"/><text x="${x+22}" y="122" text-anchor="middle" font-size="12" fill="#4a453b">LC 듀플렉스</text>`
+    :`<rect x="${x}" y="66" width="48" height="38" rx="6" fill="#1d1f22"/><rect x="${x+(side?-10:48)}" y="74" width="10" height="22" fill="#2b2e32"/><text x="${x+24}" y="122" text-anchor="middle" font-size="12" fill="#4a453b">${lbl}</text>`;
+  const flag=(x,n)=>`<line x1="${x}" y1="85" x2="${x}" y2="58" stroke="#bbb"/><rect x="${x-46}" y="20" width="92" height="38" rx="3" fill="#fff" stroke="#bfb7a6"/><text x="${x}" y="40" text-anchor="middle" font-family="monospace" font-weight="700" font-size="15" fill="#111">${c.lab}</text><text x="${x}" y="53" text-anchor="middle" font-size="10" fill="#7a7364">${n}/2</text>`;
+  $('doc').innerHTML=`<button class="x" id="dx">닫기 · Esc</button><div class="org">${c.isNew?'신규 케이블 · 오늘 작업':'기존 케이블 · '+(c.C?c.C.name:'')+' · 변경 금지'}</div><h2>${c.lab}</h2><div class="no">${c.kind} · ${c.from} ↔ ${c.to}</div>
+  <div style="overflow-x:auto"><svg viewBox="0 0 640 140" width="100%" style="min-width:520px;display:block;margin:4px 0 10px" role="img" aria-label="케이블 확대 그림">
+  <path d="M84 85 C 230 40, 410 130, 556 85" fill="none" stroke="${c.hex}" stroke-width="${fib?5:9}" stroke-linecap="round"/>
+  ${end(36,'C13 (장비 쪽)',0)}${end(556,'C14 (PDU 쪽)',1)}${flag(140,1)}${flag(500,2)}</svg></div>
+  ${tr([['From (1/2 태그)',c.from,'m'],['To (2/2 태그)',c.to,'m'],['종류',c.kind],['길이',c.len||'1.0 m'],['라벨',c.lab+' · 양 끝 2장','ok']])}
+  ${c.bad?`<p class="bad">${c.bad}</p>`:''}
+  <div class="pen"><b>${c.isNew?'확인할 것':'만약 이걸 뽑으면?'}</b>${c.isNew?'양 끝 태그 번호가 같은지, 연결표와 From/To가 맞는지 확인합니다.':(fib?c.dev+' 네트워크가 끊겨 '+c.C.name.split(' (')[0]+' 서비스 장애가 납니다.':c.dev+' 전원 이중화 하나가 사라져 고객사에 경보가 갑니다.')+' 작업지시서에 없는 선은 절대 뽑지 않습니다.'}</div>`;
+  $('zoom').hidden=false;$('dx').focus();$('dx').onclick=closeDoc;}
 function applyScene(){
   const s=cur, w=wif;
   // 박스
-  flapL.rotation.z=s>=1?2.3:0; flapR.rotation.z=s>=1?-2.3:0;
+  flapOverride=null;
   kit.visible=s<=2;
   // 서버 위치
   const inCart=s<=2;
-  if(inCart){ server.visible=s>=1; const p=new T.Vector3(0.05,0.77+(s>=1?0.27:0.08),0); cart.localToWorld(p); srvTarget.copy(p); srvRot=cart.rotation.y; }
+  if(inCart){ server.visible=s>=1; srvRot=cart.rotation.y; }
   else { server.visible=true; const p=new T.Vector3(0,uY(10)+RU,s===3?0.32:0.06); R07.localToWorld(p); srvTarget.copy(p); srvRot=(s===3&&w)?Math.PI:0; }
   ghost.visible=s===2; rails.visible=s>=3;
   // 케이블
   cableG.clear();
   if(s>=4){
     const y=uY(10)+RU, z=-0.36;
-    tube([[-0.17,y,z],[-0.17,y,z-0.09],[-0.24,y+0.03,-0.42],[-0.262,y+0.06,-0.4]],0xf08a2c,0.016);
+    tube([[-0.17,y,z],[-0.17,y,z-0.09],[-0.24,y+0.03,-0.42],[-0.262,y+0.06,-0.4]],0xf08a2c,0.0045,NEWC.a);
     if(!(s===5&&w)){
-      if(s===4&&w) tube([[0.17,y,z],[0.17,y,z-0.1],[0,y-0.08,-0.45],[-0.24,y-0.02,-0.42],[-0.262,y-0.06,-0.4]],0xf08a2c,0.016);
-      else tube([[0.17,y,z],[0.17,y,z-0.09],[0.24,y+0.03,-0.42],[0.262,y+0.06,-0.4]],0x4fa8d9,0.016);
-    } else tube([[0.17,y,z-0.03],[0.17,y-0.06,z-0.1],[0.12,y-0.25,z-0.12]],0x4fa8d9,0.016);
-    tube([[-0.03,y,z],[-0.03,y+0.05,-0.42],[0.0,uY(30),-0.42],[0,uY(40),-0.4]],0xe8d25a,0.006);
+      if(s===4&&w) tube([[0.17,y,z],[0.17,y,z-0.1],[0,y-0.08,-0.45],[-0.24,y-0.02,-0.42],[-0.262,y-0.06,-0.4]],0xf08a2c,0.0045,NEWC.a2);
+      else tube([[0.17,y,z],[0.17,y,z-0.09],[0.24,y+0.03,-0.42],[0.262,y+0.06,-0.4]],0x4fa8d9,0.0045,NEWC.b);
+    } else tube([[0.17,y,z-0.03],[0.17,y-0.06,z-0.1],[0.12,y-0.25,z-0.12]],0x4fa8d9,0.0045,NEWC.u);
+    tube([[-0.03,y,z],[-0.03,y+0.05,-0.42],[0.0,uY(30),-0.42],[0,uY(40),-0.4]],0xe8d25a,0.0026,NEWC.f);
   }
   // LED·전면
   const led=s>=5?((s===5&&w)?'#f2b44a':'#3fbf86'):null;
@@ -372,9 +577,86 @@ function resize(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspe
 addEventListener('resize',resize);
 let drag=null;const ray=new T.Raycaster(),nd=new T.Vector2();
 function hit(e){const r=cv.getBoundingClientRect();nd.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(nd,cam);const tgt=STEPS[cur].hot();const objs=[];tgt.traverse(o=>{if(o.isMesh)objs.push(o);});return ray.intersectObjects(objs,false).length>0;}
-cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,m:0};goal=null;});
-cv.addEventListener('pointermove',e=>{if(!drag){cv.classList.toggle('hot',hit(e));return;}const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.m+=Math.abs(dx)+Math.abs(dy);view.az-=dx*0.006;view.pol=Math.max(0.35,Math.min(1.42,view.pol-dy*0.005));});
-cv.addEventListener('pointerup',e=>{if(drag&&drag.m<6&&hit(e)){done[cur]=true;render();}drag=null;});
+/* ---------- 물체 상호작용 ---------- */
+const props=[];
+const toolP=[];let popXY=[0,0];
+function prop(obj,o){o.obj=obj;props.push(o);if(obj===drv||obj===cut||obj===clamp){if(toolP[0]===0)toolP.length=0;toolP.push(o);}obj.traverse(m=>{if(m.isMesh)m.userData.prop=o;});}
+const pduAmp=(k)=>{const after=cur>=4;let a=after?5.1:4.1,b=after?4.9:3.9;if(cur===4&&wif){a=after?6.1:4.1;b=3.9;}if(cur===5&&wif){a=6.1;b=3.9;}return k==='A'?a:b;};
+function ampRow(k){const v=pduAmp(k);return [`PDU-${k}`,`${v.toFixed(1)} A / 16 A (${Math.round(v/16*100)}%)`,v>12.8?'bad':'ok'];}
+let cartGoal=null, flapOverride=null, windT=0;
+function setupProps(){
+  prop(clip,{k:'서류',n:'작업지시서',d:'오늘 작업의 승인·위치·시간이 적힌 문서입니다.',open:()=>openDoc(0)});
+  prop(lap,{k:'장비',n:'작업용 노트북',d:'관제 시스템과 BMC(원격 관리) 화면을 여는 노트북입니다.',open:()=>openDoc(6)});
+  prop(lp,{k:'공구',n:'라벨 프린터',d:'케이블 라벨을 뽑습니다. 케이블 하나에 양 끝용으로 같은 번호를 두 장 뽑습니다.',rows:()=>{const L=LABELS[labIdx%3];return [['다음 라벨',L.c],['연결',L.f+' ↔ '+L.t],['뽑은 라벨',printed.length+'장']];},act:()=>[['라벨 출력 (양 끝 2장)',()=>{if(printQ.length)return '출력 중입니다…';const L=LABELS[labIdx%3];labIdx++;printQ.push([L,1],[L,2]);return L.c+' 라벨 2장을 뽑습니다. 작업대에 놓인 라벨을 누르면 크게 보입니다.';}]]});
+  prop(tbox,{k:'공구',n:'공구함',d:'드라이버, 커터, 클램프 미터가 들어 있습니다.',act:()=>[[tOpen?'공구 넣고 닫기':'열어서 공구 꺼내기',()=>{tOpen=!tOpen;return tOpen?'작업대 위에 공구를 꺼내 놓았습니다.':'공구함을 닫았습니다.';}]].concat(tOpen?[['드라이버',()=>{showPop(toolP[0],popXY[0],popXY[1]);return '';}],['커터',()=>{showPop(toolP[1],popXY[0],popXY[1]);return '';}],['클램프 미터',()=>{showPop(toolP[2],popXY[0],popXY[1]);return '';}]]:[])});
+  toolP.push(0);prop(drv,{k:'공구',n:'드라이버 (+)',d:'레일 고정 나사와 서버 손잡이 나사를 조입니다.',rows:()=>[['쓰는 단계','04 레일 설치·장착']],act:()=>[['레일 나사 조이기',()=>cur>=3?'U10–11 레일 앞뒤 나사 고정 ✓':'아직 레일을 달 단계가 아닙니다.']]});
+  prop(cut,{k:'공구',n:'커터',d:'박스 테이프를 자릅니다. 날을 몸 반대쪽으로.',rows:()=>[['쓰는 단계','02 입고 검수']],act:()=>[['박스 테이프 자르기',()=>{flapOverride=true;return '박스 뚜껑을 열었습니다.';}]]});
+  prop(clamp,{k:'측정기',n:'클램프 미터',d:'전선을 집게로 물기만 하면 흐르는 전류를 잽니다. 전선을 끊지 않아도 됩니다.',rows:()=>[ampRow('A'),ampRow('B')],act:()=>[['PDU-A 재기',()=>'PDU-A 입력선: '+pduAmp('A').toFixed(1)+' A'],['PDU-B 재기',()=>'PDU-B 입력선: '+pduAmp('B').toFixed(1)+' A']]});
+  prop(cart,{k:'운반',n:'서버 운반 카트',d:'무거운 장비를 랙 앞까지 옮깁니다. 바퀴 잠금 후 작업합니다.',act:()=>[[cartGoal&&cartGoal.x>-2?'제자리로':'랙 앞으로 밀기',()=>{const far=!(cartGoal&&cartGoal.x>-2);cartGoal=far?new T.Vector3(-1.25,0,0.95):new T.Vector3(-2.3,0,1.5);return far?'카트를 R07 앞으로 옮겼습니다.':'카트를 제자리로 돌렸습니다.';}]]});
+  prop(carton,{k:'입고품',n:'서버 박스',d:'NX-2400 서버 1대와 레일 키트가 들어 있습니다. 옆면에 S/N 라벨.',rows:()=>[['S/N',wif&&cur===1?'JX7-4812-K':'JX7-4821-K',wif&&cur===1?'bad':''],['무게','24.6 kg']],act:()=>[[flapsOpen()?'뚜껑 닫기':'뚜껑 열기',()=>{flapOverride=!flapsOpen();return flapOverride?'뚜껑을 열었습니다.':'뚜껑을 닫았습니다.';}],['입고 검수서 보기',()=>{openDoc(1);return '';}]]});
+  prop(kit,{k:'입고품',n:'레일 키트 · 전원 코드',d:'슬라이드 레일 2개와 C13–C14 전원 코드 2개입니다.',rows:()=>[['레일','2 / 2','ok'],['전원 코드','2 / 2','ok']]});
+  prop(server,{k:'장비',n:'신규 서버 NX-2400',d:'2U 서버. 앞면에 디스크 16개, 뒷면에 PSU 2개.',rows:()=>[['위치',cur>=3?'R07 · U10–11':'카트 위'],['전원',cur>=5?(wif&&cur===5?'PSU 1/2':'ON · PSU 2/2'):'OFF',cur>=5?(wif&&cur===5?'warn':'ok'):'']],act:()=>cur===3?[['레일에 밀어 넣기',()=>{done[3]=true;render();return '“딸깍” 장착 완료.';}]]:cur===5?[['전원 버튼 누르기',()=>{done[5]=true;render();return 'POST 진행… 완료. LED 초록.';}]]:[]});
+  ['R05','R06','R07','R08','R09'].forEach(n=>{const g=racks[n];prop(g,{k:'랙',n:'랙 '+n+' · '+RACKCUST[n].s,d:n==='R07'?RACKCUST[n].n+' 전용 랙입니다. 오늘 이 고객사 서버를 U10–11에 넣습니다.':RACKCUST[n].n+' 전용 랙입니다. '+({R05:'1U 게임 서버가 빽빽하게 들어 있습니다.',R06:'아래에 4U 스토리지 4대, 위에 인코딩 서버가 있습니다.',R08:'방화벽이 따로 있고 문이 잠겨 있는 보안 랙입니다.',R09:'4U GPU 서버 4대가 들어 있어 전력·발열이 큽니다.'}[n]||'')+' 다른 고객사 장비는 그 고객사 랙에만 넣습니다. 작업지시서에 없는 랙은 열지 않습니다.',rows:()=>[['상태','가동 중','ok'],['입구 온도',(n==='R07'&&cur===3&&wif)?'31 ℃':'24 ℃',(n==='R07'&&cur===3&&wif)?'bad':'ok']],act:()=>[[g.userData.doorT<0?'앞문 닫기':'앞문 열기',()=>{g.userData.doorT=g.userData.doorT<0?0:-1.85;return n!=='R07'&&g.userData.doorT<0?'작업 대상이 아닌 랙을 열었습니다. 닫아 두세요.':'문을 '+(g.userData.doorT<0?'열었':'닫았')+'습니다.';}]]});});
+  prop(pduA,{k:'전원',n:'PDU-A (A 전원)',d:'랙 뒤 세로 멀티탭. 주황 = A 계통.',rows:()=>[ampRow('A'),['남은 콘센트','5 / 12']]});
+  prop(pduB,{k:'전원',n:'PDU-B (B 전원)',d:'랙 뒤 세로 멀티탭. 파랑 = B 계통.',rows:()=>[ampRow('B'),['남은 콘센트','5 / 12']]});
+  prop(tray,{k:'설비',n:'케이블 트레이',d:'랙 위로 광·전원 케이블이 지나가는 길입니다. 바닥에 케이블을 늘어놓지 않습니다.'});
+  prop(thermo,{k:'설비',n:'온습도계',d:'콜드 아일 벽면 센서입니다.',rows:()=>[['온도','23.8 ℃','ok'],['습도','45 %RH','ok'],['권장','18–27 ℃ · 40–60 %']]});
+  prop(ext,{k:'안전',n:'소화기',d:'전산실용 가스계 소화기입니다. 위치만 기억해 두세요.',rows:()=>[['점검일','2026-10-15 (가상)']]});
+  prop(sign,{k:'표지',n:'구역 표지판',d:'HALL B · ROW 3. 작업지시서의 위치와 맞는지 확인합니다.'});
+  CUST.forEach(C=>C.devs.forEach(([di,u,h,nm])=>prop(R07.userData.devs[di],{k:'고객 장비',n:nm+' · '+C.name.split(' (')[0],d:C.name+'의 장비입니다. 오늘 작업 대상이 아니므로 건드리지 않습니다.',rows:()=>[['고객사',C.name],['위치','R07 · U'+u+(h>1?'–'+(u+h-1):'')],['상태','가동 중','ok'],['전원','A/B 이중화','ok']]})));
+  CABLES.forEach(c=>prop(c.m,{k:'기존 케이블',n:c.lab+' · '+c.from+' → '+c.to,open:()=>openCable(c)}));
+  prop(R07.userData.devs[9]||R07,{k:'네트워크',n:'TOR 스위치 (R07-TOR-01)',d:'랙 맨 위의 스위치. 서버 광 케이블이 여기로 갑니다.',rows:()=>[['Te1/0/14',cur>=4?'연결됨 · UP':'비어 있음',cur>=4?'ok':''],['사용 포트','13 / 48']]});
+}
+function flapsOpen(){return flapOverride===null?cur>=1:flapOverride;}
+const ray2=new T.Raycaster();
+function pickAt(e){const r=cv.getBoundingClientRect();nd.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray2.setFromCamera(nd,cam);const ms=[];props.forEach(p=>{p.obj.traverseVisible(m=>{if(m.isMesh&&!m.userData.hlPart&&!(m.material&&m.material.visible===false))ms.push(m);});});const vis=o=>{while(o){if(!o.visible)return false;o=o.parent;}return true;};const h=ray2.intersectObjects(ms.filter(vis),false)[0];return h?h.object:null;}
+function isHot(m){const t=STEPS[cur].hot();let o=m;while(o){if(o===t)return true;o=o.parent;}return false;}
+function propOf(m){let o=m;while(o){if(o.userData&&o.userData.prop)return o.userData.prop;o=o.parent;}return null;}
+/* 고르기 표시: 물체 모양 그대로 초록 테두리 + 지잉지잉 깜빡임 */
+const HLC=0x34d27b, hlFill=new T.MeshBasicMaterial({color:HLC,transparent:true,opacity:.32,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),
+  hlLine=new T.LineBasicMaterial({color:HLC,transparent:true,opacity:1}),
+  hlHull=new T.MeshBasicMaterial({color:HLC,side:T.BackSide,transparent:true,opacity:.9,depthWrite:false});
+let hlProp=null, hlParts=[];const edgeCache=new WeakMap();
+function setHL(p){
+  if(p===hlProp)return; hlParts.forEach(o=>o.parent&&o.parent.remove(o)); hlParts=[]; hlProp=p; if(!p)return;
+  p.obj.traverseVisible(m=>{
+    if(!m.isMesh||m.userData.hlPart||(m.material&&m.material.visible===false))return;
+    let eg=edgeCache.get(m.geometry); if(!eg){eg=new T.EdgesGeometry(m.geometry,28);edgeCache.set(m.geometry,eg);}
+    const ln=new T.LineSegments(eg,hlLine);ln.userData.hlPart=1;ln.renderOrder=5;
+    const ov=new T.Mesh(m.geometry,hlFill);ov.userData.hlPart=1;ov.renderOrder=4;ov.raycast=()=>{};ln.raycast=()=>{};
+    m.add(ov);hlParts.push(ov);
+
+  });
+}
+function showPop(p,x,y,msg){
+  if(p.open){p.open();closePop();return;}
+  const rows=(p.rows?p.rows():[]).map(r=>`<div class="r"><span>${r[0]}</span><span class="${r[2]||''}">${r[1]}</span></div>`).join('');
+  const acts=(p.act?p.act():[]).concat([['가까이 보기',()=>{lookAt(p);return '';}]]);
+  const el=$('pop');el.innerHTML=`<button class="x" aria-label="닫기">×</button><div class="k">${p.k}</div><h3>${p.n}</h3><p>${p.d}</p>${rows}${acts.length?`<div class="acts">${acts.map((a,i)=>`<button data-i="${i}">${a[0]}</button>`).join('')}</div>`:''}${msg?`<div class="res">${msg}</div>`:''}`;
+  el.hidden=false;const w=el.offsetWidth,h=el.offsetHeight;el.style.left=Math.max(8,Math.min(x+18,innerWidth-w-8))+'px';el.style.top=Math.max(8,Math.min(y-20,innerHeight-h-8))+'px';
+  el.querySelector('.x').onclick=closePop;
+  el.querySelectorAll('.acts button').forEach(b=>b.onclick=()=>{const r=acts[+b.dataset.i][1]();if(r!==''){renderInstr();showPop(p,x,y,r);}});
+  popFor=p;popXY=[x,y];
+}
+function clampT(t){t.x=Math.max(-3.9,Math.min(3.9,t.x));t.z=Math.max(-3.1,Math.min(3.1,t.z));}
+const mark=new T.Mesh(new T.RingGeometry(0.12,0.16,32),new T.MeshBasicMaterial({color:0xf27a3d,transparent:true,opacity:0,depthWrite:false}));mark.rotation.x=-Math.PI/2;scene.add(mark);let markT=0;
+function walkTo(e){const r=cv.getBoundingClientRect();nd.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray2.setFromCamera(nd,cam);const h=ray2.intersectObjects([floor,perf],false)[0];if(!h)return;
+  const t=h.point.clone();clampT(t);mark.position.set(t.x,0.01,t.z);markT=1;t.y=0.7;goal={az:view.az,pol:Math.min(view.pol,1.12),dist:Math.min(view.dist,3.4),t};}
+function lookAt(p){const b=new T.Box3().setFromObject(p.obj),c=b.getCenter(new T.Vector3()),sz=b.getSize(new T.Vector3()).length();clampT(c);goal={az:view.az,pol:Math.min(view.pol,1.15),dist:Math.max(0.9,Math.min(4,sz*2.2)),t:c};closePop();}
+let popFor=null;function closePop(){$('pop').hidden=true;popFor=null;}
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,m:0,pan:e.button===2||e.shiftKey};goal=null;});
+cv.addEventListener('pointermove',e=>{
+  if(!drag){const m=pickAt(e),p=m&&propOf(m);cv.classList.toggle('hot',!!p);const tip=$('tip');
+    if(p){tip.hidden=false;tip.textContent=p.n+(isHot(m)?' · 지금 작업':'');tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';setHL(p);}else{tip.hidden=true;setHL(null);}return;}
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.m+=Math.abs(dx)+Math.abs(dy);if(drag.pan){const k2=view.dist*0.0016,ca=Math.cos(view.az),sa=Math.sin(view.az);view.t.x+=(-dx*ca-dy*sa)*k2;view.t.z+=(dx*sa-dy*ca)*k2;clampT(view.t);$('tip').hidden=true;return;}view.az-=dx*0.006;view.pol=Math.max(0.35,Math.min(1.42,view.pol-dy*0.005));$('tip').hidden=true;});
+cv.addEventListener('pointerup',e=>{
+  if(drag&&drag.m<6){const m=pickAt(e);const hotHit=hit(e);
+    if(hotHit){done[cur]=true;render();}
+    const p=m&&propOf(m);if(p)showPop(p,e.clientX,e.clientY,hotHit&&!p.open?'✓ 이 단계 작업을 했습니다.':'');else if(hotHit&&(cur===0||cur===6))openDoc(cur);else{closePop();if(!drag.pan)walkTo(e);}}
+  drag=null;});
+cv.addEventListener('pointerleave',()=>{$('tip').hidden=true;setHL(null);});
+addEventListener('keydown',e=>{if(e.key==='Escape')closePop();});
 cv.addEventListener('wheel',e=>{e.preventDefault();goal=null;view.dist=Math.max(1.4,Math.min(14,view.dist*(1+Math.sign(e.deltaY)*0.08)));},{passive:false});
 
 /* ---------- 루프 ---------- */
@@ -384,9 +666,19 @@ function loop(now){
   if(goal){view.az+=(goal.az-view.az)*k;view.pol+=(goal.pol-view.pol)*k;view.dist+=(goal.dist-view.dist)*k;view.t.lerp(goal.t,k);}
   server.position.lerp(srvTarget,k*0.9);server.rotation.y+=(srvRot-server.rotation.y)*k;
   // 카메라 쪽 벽은 숨기기(단면 보기)
+  {const fo=flapsOpen();flapL.rotation.z+=((fo?2.3:0)-flapL.rotation.z)*k;flapR.rotation.z+=((fo?-2.3:0)-flapR.rotation.z)*k;}
+  if(cartGoal)cart.position.lerp(cartGoal,k*0.6);
+  if(cur<=2){const p=new T.Vector3(0.05,0.77+(cur>=1?0.27:0.08),0);cart.localToWorld(p);srvTarget.copy(p);}
+  ['R05','R06','R07','R08','R09'].forEach(n=>{const d=racks[n].userData;d.door.rotation.y+=(d.doorT-d.door.rotation.y)*k;});
+  tlid.rotation.x+=((tOpen?-1.9:0)-tlid.rotation.x)*k;tools.visible=tOpen;
+  if(lpOut<=0&&printQ.length){lpOut=1;lpTape.visible=true;}
+  if(lpOut>0){lpOut=Math.max(0,lpOut-dt*0.9);lpTape.scale.z=Math.min(1,(1-lpOut)*1.4);lpTape.position.z=0.08+0.06*lpTape.scale.z;if(lpOut===0){lpTape.visible=false;const q=printQ.shift();dropLabel(q[0],q[1]);}}
+  if(windT>0)windT-=dt;
+  if(markT>0){markT=Math.max(0,markT-dt*1.2);mark.material.opacity=markT;mark.scale.setScalar(1+(1-markT)*0.6);}
+
   wallB.visible=cam.position.z>-D/2+0.5; wallL.visible=cam.position.x>-W/2+0.5; sign.visible=wallB.visible;
   // 공기 화살표
-  const rev=cur===3&&wif;
+  flowG.visible=cur===3||cur===5||windT>0;const rev=cur===3&&wif;
   flow.forEach(f=>{f.t=(f.t+dt*0.45)%1;const z=rev?0.38+f.t*0.9:1.25-f.t*0.85;f.m.position.set(f.x,uY(10)+RU+(f.t*0.02),z);f.m.rotation.x=rev?Math.PI/2:-Math.PI/2;f.m.material.color.setHex(rev?0xff6f5c:0x5fb3e6);f.m.material.opacity=Math.sin(f.t*Math.PI)*0.9;});
   // 강조 깜빡임
   const pul=(Math.sin(now/260)+1)/2;
@@ -397,11 +689,12 @@ function loop(now){
   bubEls.forEach(b=>{b.obj.getWorldPosition(v);v.add(b.off).project(cam);const vis=v.z<1;b.el.style.display=vis?'flex':'none';b.el.style.left=((v.x+1)/2*r.width)+'px';b.el.style.top=((1-v.y)/2*r.height)+'px';});
   requestAnimationFrame(loop);
 }
+setupProps();
 resize();
 server.position.copy(new T.Vector3(-2.3,0.85,1.5));
 go(0);
 requestAnimationFrame(loop);
-window.__mock={go};
+window.__mock={doors:()=>Object.values(racks).forEach(g=>g.userData.doorT=-1.85),cable:i=>openCable(CABLES[i]),labels:()=>printed.length,go,pt:n=>{const pr=props.find(x=>x.n===n);const v=new T.Box3().setFromObject(pr.obj).getCenter(new T.Vector3()).project(cam);return {x:(v.x+1)/2*innerWidth,y:(1-v.y)/2*innerHeight};}};
 })();
 </script>
 </body>
